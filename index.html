@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KitCost - คิดต้นทุนร้านเล็ก</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F4EFE3;
+      --orange: #7B8C52;
+      --orange-hover: #677642;
+      --orange-bg: #EDF0E5;
+      --orange-border: #B8C99A;
+      --card: #FDFAF3;
+      --border: #D4C9B2;
+      --text: #2C1A0E;
+      --text2: #5A4A32;
+      --text3: #8C7B62;
+      --red: #B03A2E;
+      --green-logo: #7B8C52;
+      --green-positive: #4E6B2E;
+      --yellow-bg: #F5F0DC;
+      --yellow-border: #D4BB78;
+      --nav-bg: #3A2C1E;
+      --nav-active: #9AAD68;
+      --r: 14px;
+      --r-sm: 10px;
+      --nav-h: 70px;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── PAGES ── */
+    .page { display: none; min-height: 100vh; padding-bottom: calc(var(--nav-h) + 16px); }
+    .page.active { display: block; }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-kit { color: var(--green-logo); }
+    .logo-cost { color: var(--orange); }
+    .btn-icon { background: none; border: none; font-size: 22px; cursor: pointer; line-height: 1; padding: 4px; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      height: var(--nav-h);
+      background: var(--nav-bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 20;
+      box-shadow: 0 -2px 20px rgba(0,0,0,0.3);
+    }
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      color: rgba(255,255,255,0.38);
+      transition: color 0.15s;
+    }
+    .nav-tab.active { color: var(--nav-active); }
+    .nav-tab .nav-icon { font-size: 22px; line-height: 1; }
+    .nav-tab .nav-label { font-size: 11px; font-weight: 600; font-family: inherit; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 15px 20px; border-radius: var(--r-sm);
+      font-size: 16px; font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.15s; width: 100%; font-family: inherit;
+    }
+    .btn-primary { background: var(--orange); color: #fff; }
+    .btn-primary:hover { background: var(--orange-hover); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-secondary { background: var(--orange-bg); color: var(--orange); border: 1.5px solid var(--orange-border); }
+    .btn-secondary:hover { background: #D4A88233; }
+    .btn-dashed {
+      background: none; border: 2px dashed var(--orange-border);
+      color: var(--orange); border-radius: var(--r-sm);
+      padding: 13px; width: 100%; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .btn-dashed:hover { background: var(--orange-bg); }
+    .btn-dashed-pink { border-color: #E0A0A0; color: #C4625A; }
+    .btn-dashed-pink:hover { background: #F9ECEC; }
+    .serve-helper {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--yellow-bg); border: 1px solid var(--yellow-border);
+      border-radius: var(--r-sm); padding: 8px 12px; margin-top: 6px;
+    }
+    .serve-helper input {
+      width: 72px; padding: 5px 8px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+      background: #fff; color: var(--text); text-align: center;
+    }
+    .serve-helper-label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+
+    /* ── CARD ── */
+    .card { background: var(--card); border-radius: var(--r); padding: 18px; border: 1px solid var(--border); margin-bottom: 14px; }
+
+    /* ── FORM FIELDS ── */
+    .field { margin-bottom: 13px; }
+    .field:last-child { margin-bottom: 0; }
+    label.field-label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+    .field-row { display: flex; gap: 10px; }
+    .field-row .field { flex: 1; margin-bottom: 0; }
+    input[type="text"], input[type="number"], select {
+      width: 100%; padding: 11px 13px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      font-size: 15px; background: #FAF5ED; color: var(--text);
+      outline: none; transition: border-color 0.15s; font-family: inherit;
+    }
+    input:focus, select:focus { border-color: var(--orange); }
+    input::placeholder { color: var(--text3); font-size: 14px; }
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+      background-color: #FAF5ED;
+      background-repeat: no-repeat; background-position: right 11px center;
+      padding-right: 32px; cursor: pointer;
+    }
+
+    /* ── SECTION ── */
+    .section-title { font-size: 19px; font-weight: 700; margin-bottom: 3px; }
+    .section-sub { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.5; }
+
+    /* ── TIP BOX ── */
+    .tip-box {
+      background: var(--yellow-bg); border: 1px solid var(--yellow-border);
+      border-radius: var(--r-sm); padding: 11px 13px;
+      font-size: 13px; color: #6B4F1A; margin-bottom: 14px; line-height: 1.6;
+    }
+
+    /* ── TOGGLE TABS ── */
+    .toggle-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .toggle-tab {
+      flex: 1; padding: 9px 6px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+      text-align: center; transition: all 0.15s; font-family: inherit;
+    }
+    .toggle-tab.active { background: var(--orange); color: #fff; }
+    .toggle-tab.inactive { background: #DDD3C4; color: var(--text2); }
+    .toggle-tab.inactive:hover { background: #CEC3B0; }
+
+    /* ── INGREDIENT CARD ── */
+    .ing-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 15px; margin-bottom: 12px; }
+    .ing-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+    .ing-label { font-size: 14px; font-weight: 600; color: var(--text2); }
+    .btn-delete {
+      background: none; border: none; color: var(--red);
+      cursor: pointer; font-size: 12px; font-weight: 700;
+      padding: 4px 8px; border-radius: 6px; transition: background 0.15s;
+    }
+    .btn-delete:hover { background: #F5E8E6; }
+    .cost-row { display: flex; align-items: center; justify-content: space-between; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--border); }
+    .cost-label { font-size: 14px; font-weight: 600; color: var(--text2); }
+    .cost-val { font-size: 16px; font-weight: 700; color: var(--green-positive); }
+    .cost-err { font-size: 12px; color: var(--red); }
+
+    /* ── MISC SECTION ── */
+    .radio-opt { display: flex; align-items: center; gap: 10px; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--r-sm); cursor: pointer; margin-bottom: 8px; transition: all 0.15s; }
+    .radio-opt.selected { border-color: var(--orange); background: var(--orange-bg); }
+    .radio-opt input[type="radio"] { accent-color: var(--orange); width: 17px; height: 17px; cursor: pointer; }
+    .radio-opt span { font-size: 14px; font-weight: 500; }
+
+    /* ── STICKY CALC BUTTON ── */
+    .sticky-btn {
+      position: fixed; bottom: var(--nav-h);
+      left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      padding: 10px 18px 12px;
+      background: linear-gradient(to top, var(--bg) 60%, transparent);
+    }
+
+    /* ── NAME SECTION ── */
+    .name-section { padding: 16px 18px; background: var(--card); border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .name-section .section-title { margin-bottom: 14px; }
+
+    /* ── PROFIT ── */
+    .profit-card { border: 2px solid var(--yellow-border); background: var(--yellow-bg); }
+    .profit-row { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; background: var(--card); border-radius: var(--r-sm); }
+    .profit-label { font-size: 14px; color: var(--text2); font-weight: 600; }
+    .profit-val { font-size: 22px; font-weight: 800; }
+    .profit-pct { font-size: 18px; font-weight: 700; }
+
+    /* ── SUMMARY ── */
+    .summary-total-card { background: var(--orange); border-radius: var(--r); padding: 24px; text-align: center; margin-bottom: 14px; }
+    .summary-total-label { color: rgba(255,255,255,0.82); font-size: 14px; margin-bottom: 4px; }
+    .summary-total-val { color: #fff; font-size: 38px; font-weight: 900; letter-spacing: -1px; }
+    .breakdown-section { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 0 4px; }
+    .breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .breakdown-row:last-child { border-bottom: none; }
+    .breakdown-name { color: var(--text2); flex: 1; padding-right: 8px; }
+    .breakdown-amt { font-weight: 600; white-space: nowrap; }
+    .breakdown-total-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0 0; margin-top: 4px; border-top: 2px solid var(--border); }
+
+    /* ── SAVED LIST ── */
+    .date-group-header {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 700; color: #fff;
+      background: var(--green-logo); border: none;
+      border-radius: var(--r-sm); padding: 8px 14px;
+      margin: 16px 0 10px; letter-spacing: 0.3px;
+    }
+    .date-group-header:first-child { margin-top: 4px; }
+    .saved-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 15px; margin-bottom: 12px; cursor:pointer; transition: box-shadow 0.15s; }
+    .saved-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .saved-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .saved-detail { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: none; }
+    .saved-detail.open { display: block; }
+    .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-type { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 7px; border-radius: 4px; background: var(--yellow-bg); margin-right: 6px; }
+    .detail-name { color: var(--text2); flex: 1; padding-right: 8px; }
+    .detail-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .detail-cost { font-weight: 700; color: var(--green-positive); white-space: nowrap; }
+    .detail-total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; margin-top: 4px; border-top: 2px solid var(--border); }
+    .toggle-arrow { font-size: 11px; color: var(--text3); transition: transform 0.2s; display: inline-block; }
+    .saved-name { font-size: 16px; font-weight: 700; }
+    .saved-cost { font-size: 18px; font-weight: 800; color: var(--orange); white-space: nowrap; }
+    .saved-meta { font-size: 12px; color: var(--text3); margin-bottom: 12px; }
+    .saved-actions { display: flex; gap: 8px; }
+    .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
+    .btn-sm-outline { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border); }
+    .btn-sm-outline:hover { background: #D4A88233; }
+    .btn-sm-danger { background: #F5E8E6; color: var(--red); border: 1px solid #D4A89E; }
+    .btn-sm-danger:hover { background: #EDD5D2; }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 50px 20px; }
+    .empty-icon { font-size: 44px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+    .empty-sub { font-size: 13px; color: var(--text3); }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+    /* ════════════════════════════
+       DAILY PAGE
+    ════════════════════════════ */
+
+    /* Month stats */
+    .month-stats {
+      display: flex; gap: 10px; padding: 14px 16px;
+      background: var(--card); border-bottom: 1px solid var(--border);
+    }
+    .stat-card {
+      flex: 1; background: var(--orange-bg); border: 1px solid var(--orange-border);
+      border-radius: var(--r-sm); padding: 12px 10px; text-align: center;
+    }
+    .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+    .stat-val { font-size: 18px; font-weight: 800; color: var(--orange); }
+
+    /* Calendar nav */
+    .cal-wrap { padding: 16px 16px 10px; }
+    .cal-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cal-nav-title { font-size: 16px; font-weight: 700; }
+    .cal-nav-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text2); transition: all 0.15s;
+    }
+    .cal-nav-btn:hover { background: var(--orange-bg); border-color: var(--orange-border); color: var(--orange); }
+    .cal-nav-today {
+      padding: 6px 14px; border-radius: 20px;
+      background: var(--orange); color: #fff;
+      border: none; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+    }
+
+    /* Calendar grid */
+    .cal-grid {
+      background: var(--card); border-radius: var(--r); overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .cal-days-header {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      background: #D4C4A8; padding: 8px 0;
+    }
+    .cal-day-label { text-align: center; font-size: 12px; font-weight: 700; color: var(--text2); }
+    .cal-day-label:first-child { color: var(--red); }
+    .cal-day-label:last-child { color: #4A7AB8; }
+    .cal-cells { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .cal-cell {
+      min-height: 54px; padding: 7px 4px 4px;
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border); transition: background 0.12s;
+      position: relative;
+    }
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-cell:hover { background: var(--orange-bg); }
+    .cal-cell.empty { cursor: default; background: #EDE4D4; }
+    .cal-cell.empty:hover { background: #EDE4D4; }
+    .cal-cell.today .cal-num {
+      background: var(--text); color: #fff;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cal-cell.selected { background: var(--orange-bg); }
+    .cal-cell.selected .cal-num {
+      background: var(--orange); color: #fff;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cal-cell.today.selected .cal-num { background: var(--orange); }
+    .cal-num { font-size: 14px; font-weight: 600; line-height: 1; }
+    .cal-cell:nth-child(7n+1) .cal-num { color: var(--red); }
+    .cal-cell:nth-child(7n+1).selected .cal-num,
+    .cal-cell:nth-child(7n+1).today .cal-num { color: #fff; }
+    .cal-cell:nth-child(7n) .cal-num { color: #4A7AB8; }
+    .cal-cell:nth-child(7n).selected .cal-num,
+    .cal-cell:nth-child(7n).today .cal-num { color: #fff; }
+    .cal-dots { display: flex; gap: 3px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
+    .cal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); }
+    .cal-cost-mini { font-size: 9px; color: var(--orange); font-weight: 700; margin-top: 2px; line-height: 1; }
+
+    /* Daily records section */
+    .daily-section {
+      padding: 14px 16px 8px;
+    }
+    .daily-date-label {
+      font-size: 15px; font-weight: 700; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .daily-record-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-sm); padding: 13px 14px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+    }
+    .daily-record-icon { font-size: 26px; flex-shrink: 0; }
+    .daily-record-body { flex: 1; min-width: 0; }
+    .daily-record-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .daily-record-detail { font-size: 12px; color: var(--text2); }
+    .daily-record-right { text-align: right; flex-shrink: 0; }
+    .daily-record-total { font-size: 16px; font-weight: 800; color: var(--orange); }
+    .daily-record-unit { font-size: 11px; color: var(--text3); }
+
+    /* Day total */
+    .day-total-row {
+      background: var(--orange-bg); border: 1px solid var(--orange-border);
+      border-radius: var(--r-sm); padding: 11px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .day-total-label { font-size: 14px; font-weight: 600; color: var(--text2); }
+    .day-total-val { font-size: 18px; font-weight: 800; color: var(--orange); }
+
+    /* Daily FAB */
+    .daily-fab {
+      position: fixed; bottom: calc(var(--nav-h) + 14px); right: calc(50% - 230px);
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--orange); color: #fff; border: none;
+      font-size: 28px; cursor: pointer; display: none; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(184,92,56,0.45); transition: all 0.15s; font-family: inherit;
+      z-index: 15;
+    }
+    .daily-fab.show { display: flex; }
+    .daily-fab:hover { background: var(--orange-hover); transform: scale(1.06); }
+
+    /* ── MODALS ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none; align-items: flex-end; justify-content: center; z-index: 50;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--card); border-radius: 22px 22px 0 0;
+      padding: 22px 18px 32px; width: 100%; max-width: 480px;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text2); }
+    .modal-item {
+      padding: 13px 14px; border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      margin-bottom: 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .modal-item:hover { border-color: var(--orange); background: var(--orange-bg); }
+    .modal-item-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .modal-item-meta { font-size: 12px; color: var(--text3); }
+
+    /* Calc preview in add-record modal */
+    .calc-preview {
+      background: var(--orange-bg); border: 1px solid var(--orange-border);
+      border-radius: var(--r-sm); padding: 12px 14px; margin: 12px 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .calc-preview-label { font-size: 13px; color: var(--text2); }
+    .calc-preview-val { font-size: 20px; font-weight: 800; color: var(--orange); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: #2C1A0E; color: #fff; padding: 10px 20px;
+      border-radius: 100px; font-size: 14px; font-weight: 500;
+      z-index: 100; display: none; white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+    .toast.show { display: block; animation: fadeInOut 2.2s ease forwards; }
+
+    /* Date picker — hide native calendar icon, keep it clickable */
+    #calc-date-input::-webkit-calendar-picker-indicator {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+    @keyframes fadeInOut {
+      0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+      15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+      75%  { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════
+     CALCULATE PAGE
+════════════════════════════════════════ -->
+<div id="page-calculate" class="page active">
+  <div class="header">
+    <span class="logo"><span class="logo-kit">Kit</span><span class="logo-cost">Cost</span></span>
+    <div style="width:30px"></div>
+  </div>
+
+  <div class="name-section">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:0">คำนวณต้นทุน</div>
+      <div style="position:relative;display:inline-block">
+        <!-- Visible pill display (pointer-events:none — let input below capture clicks) -->
+        <div style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--text2);background:var(--orange-bg);border:1.5px solid var(--orange-border);border-radius:20px;padding:5px 13px;white-space:nowrap;pointer-events:none;user-select:none">
+          <span>📅</span><span id="calc-date-text">กำลังโหลด...</span><span style="font-size:10px;opacity:0.5">▼</span>
+        </div>
+        <!-- Date input sits on top, nearly invisible but receives all clicks/taps -->
+        <input type="date" id="calc-date-input" onchange="onCalcDateChange(this.value)"
+          style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.01;cursor:pointer;border:none;background:transparent;padding:0;margin:0;font-size:16px;z-index:5;box-sizing:border-box">
+      </div>
+    </div>
+    <label class="field-label">ชื่อเมนูหรือสินค้า</label>
+    <input type="text" id="menu-name" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่">
+  </div>
+
+  <div style="padding: 0 18px 20px;">
+    <div class="section-title">วัตถุดิบ</div>
+    <div class="section-sub">เริ่มจาก 1 รายการ แล้วค่อยเพิ่มได้ตามต้องการ</div>
+    <div class="tip-box">💡 <strong>ตัวอย่าง:</strong> ซื้อน้ำตาลทราย 1 กก. ราคา 30 บาท ใช้จริง 100 กรัม → ต้นทุน 3 บาท &bull; ถ้าซื้อเป็นแพ็กหรือถุง ให้แปลงเป็นกรัมหรือชิ้นก่อนกรอก</div>
+    <div id="ing-list"></div>
+    <button class="btn-dashed btn-dashed-pink" onclick="addIngredient()">+ เพิ่มวัตถุดิบ</button>
+    <div class="divider"></div>
+    <div class="section-title">บรรจุภัณฑ์</div>
+    <div class="section-sub">ใส่ต้นทุนบรรจุภัณฑ์ที่ใช้ต่อ 1 ชิ้น / จาน / แก้ว เช่น กล่อง ถุง ช้อน แก้ว หลอด</div>
+    <div id="pkg-list"></div>
+    <button class="btn-dashed btn-dashed-pink" onclick="addPackaging()">+ เพิ่มบรรจุภัณฑ์</button>
+    <div class="divider"></div>
+    <div class="section-title">ค่าจิปาถะ</div>
+    <div class="section-sub">ต้นทุนที่มักลืมคิด เช่น แก๊ส น้ำมัน ค่าไฟ ค่าน้ำ ของเสีย</div>
+    <div class="card" style="margin-bottom:0">
+      <label class="radio-opt selected" onclick="setMiscType('percent')">
+        <input type="radio" name="misc-type" value="percent" checked>
+        <span>คิดเป็นเปอร์เซ็นต์ของต้นทุน</span>
+      </label>
+      <label class="radio-opt" onclick="setMiscType('fixed')">
+        <input type="radio" name="misc-type" value="fixed">
+        <span>ใส่เองเป็นบาท</span>
+      </label>
+      <div id="misc-percent-wrap" class="field" style="margin-top:4px;margin-bottom:0">
+        <label class="field-label">กี่เปอร์เซ็นต์</label>
+        <input type="number" id="misc-pct" value="10" min="0" max="100" step="0.5">
+      </div>
+      <div id="misc-fixed-wrap" class="field" style="display:none;margin-top:4px;margin-bottom:0">
+        <label class="field-label">ค่าจิปาถะ (บาท)</label>
+        <input type="number" id="misc-fix" value="0" min="0" step="0.5">
+      </div>
+    </div>
+  </div>
+
+  <div class="sticky-btn">
+    <button class="btn btn-primary" onclick="showSummary()">คำนวณต้นทุน</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SUMMARY PAGE
+════════════════════════════════════════ -->
+<div id="page-summary" class="page">
+  <div class="header">
+    <button class="btn-icon" onclick="navigate('calculate')">←</button>
+    <span class="logo"><span class="logo-kit">Kit</span><span class="logo-cost">Cost</span></span>
+    <div style="width:30px"></div>
+  </div>
+  <div style="padding: 18px 18px 20px;">
+    <div class="section-title" style="margin-bottom:4px">สรุปต้นทุน</div>
+    <div id="summary-menu-name" style="font-size:13px;color:var(--text3);margin-bottom:16px"></div>
+    <div class="summary-total-card">
+      <div class="summary-total-label">ต้นทุนรวมต่อ 1 ชิ้น / จาน / แก้ว</div>
+      <div class="summary-total-val" id="sum-total">0 บาท</div>
+    </div>
+    <div class="card" style="margin-bottom:16px"><div id="sum-breakdown"></div></div>
+
+    <!-- กำไร -->
+    <div class="card profit-card" style="margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:14px">💰 คำนวณกำไร</div>
+      <div class="field" style="margin-bottom:12px">
+        <label class="field-label">ถ้าขายที่ราคา (บาท)</label>
+        <input type="number" id="sell-price" placeholder="เช่น 35" min="0" step="any" oninput="calcProfit(this.value)">
+      </div>
+      <div id="profit-result" style="display:none">
+        <div class="profit-row">
+          <span class="profit-label">กำไรต่อชิ้น</span>
+          <span id="profit-baht" class="profit-val">—</span>
+        </div>
+        <div class="profit-row" style="margin-top:6px">
+          <span class="profit-label">อัตรากำไร</span>
+          <span id="profit-pct" class="profit-pct">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-primary" id="save-btn" onclick="saveRecipe(this)">💾 บันทึกสูตรนี้</button>
+      <button class="btn btn-secondary" onclick="resetCalc()">📋 คำนวณสูตรใหม่</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SETTINGS PAGE
+════════════════════════════════════════ -->
+<div id="page-settings" class="page">
+  <div class="header">
+    <span class="logo"><span class="logo-kit">Kit</span><span class="logo-cost">Cost</span></span>
+    <div style="width:30px"></div>
+  </div>
+
+  <div style="padding: 18px;">
+
+    <!-- BACKUP SECTION -->
+    <div class="section-title" style="margin-bottom:4px">⚙️ ตั้งค่า</div>
+    <div class="section-sub" style="margin-bottom:20px">จัดการข้อมูลแอพ KitCost</div>
+
+    <div class="card">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">📦 สำรองข้อมูล (Export CSV)</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        ดาวน์โหลดข้อมูลสูตรต้นทุนเป็นไฟล์ .CSV เปิดได้ด้วย Excel หรือ Google Sheets
+      </div>
+
+      <!-- Mode selector -->
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">เลือกข้อมูลที่ต้องการ</div>
+      <label class="radio-opt selected" id="mode-all-opt" onclick="setBackupMode('all')">
+        <input type="radio" name="backup-mode" value="all" checked>
+        <div>
+          <span style="font-size:14px;font-weight:600">ทั้งหมด</span>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">ส่งออกสูตรทุกรายการที่บันทึกไว้</div>
+        </div>
+      </label>
+      <label class="radio-opt" id="mode-select-opt" onclick="setBackupMode('selected')">
+        <input type="radio" name="backup-mode" value="selected">
+        <div>
+          <span style="font-size:14px;font-weight:600">เลือกสูตร</span>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">เลือกเฉพาะสูตรที่ต้องการ</div>
+        </div>
+      </label>
+
+      <!-- Checklist (แสดงเมื่อเลือก mode = selected) -->
+      <div id="backup-checklist" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600;color:var(--text2)">เลือกสูตร</span>
+          <button onclick="toggleAllRecipes()" id="btn-toggle-all"
+            style="font-size:12px;font-weight:700;color:var(--orange);background:none;border:none;cursor:pointer;font-family:inherit">
+            เลือกทั้งหมด
+          </button>
+        </div>
+        <div id="backup-recipe-list"></div>
+      </div>
+
+      <!-- CSV columns preview -->
+      <div class="tip-box" style="margin-top:14px;margin-bottom:16px">
+        📄 <strong>คอลัมน์ใน CSV:</strong> ชื่อสูตร, ประเภท, รายการ, ซื้อมา, หน่วยซื้อ, ราคา, ใช้, หน่วยใช้, ต้นทุน(บาท), วันที่บันทึก
+      </div>
+
+      <button class="btn btn-primary" onclick="exportCSV()">⬇️ ดาวน์โหลด CSV</button>
+    </div>
+
+    <!-- CLEAR DATA SECTION -->
+    <div class="card" style="border-color:#D4A89E">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--red)">🗑 ล้างข้อมูล</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+        ลบสูตรที่บันทึกไว้ทั้งหมด ไม่สามารถกู้คืนได้
+      </div>
+      <button class="btn btn-secondary" style="color:var(--red);border-color:#D4A89E" onclick="clearAllData()">
+        ล้างข้อมูลทั้งหมด
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SAVED RECIPES PAGE
+════════════════════════════════════════ -->
+<div id="page-saved" class="page">
+  <div class="header">
+    <span class="logo"><span class="logo-kit">Kit</span><span class="logo-cost">Cost</span></span>
+    <div style="width:30px"></div>
+  </div>
+  <div style="padding: 18px 18px;">
+    <div class="section-title" style="margin-bottom:16px">สูตรที่บันทึกไว้</div>
+    <div id="saved-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     BOTTOM NAV
+════════════════════════════════════════ -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="nav-tab active" id="tab-calculate" onclick="navigate('calculate')">
+    <span class="nav-icon">🧮</span>
+    <span class="nav-label">คำนวณ</span>
+  </button>
+  <button class="nav-tab" id="tab-saved" onclick="navigate('saved')">
+    <span class="nav-icon">📒</span>
+    <span class="nav-label">สูตร</span>
+  </button>
+  <button class="nav-tab" id="tab-settings" onclick="navigate('settings')">
+    <span class="nav-icon">⚙️</span>
+    <span class="nav-label">ตั้งค่า</span>
+  </button>
+</nav>
+
+<!-- ════════════════════════════════════════
+     MODAL: Recipe Picker (for ingredients)
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="recipe-modal" onclick="handleModalClick(event,'recipe-modal')">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div class="modal-title">เลือกสูตรที่บันทึกไว้</div>
+      <button class="modal-close" onclick="closeModal('recipe-modal')">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:14px">วัตถุดิบจากสูตรที่เลือกจะถูกโหลดเข้ามาทั้งหมด</div>
+    <div id="modal-recipe-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: Add Daily Record
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="add-record-modal" onclick="handleModalClick(event,'add-record-modal')">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div class="modal-title">เพิ่มรายการบันทึก</div>
+      <button class="modal-close" onclick="closeModal('add-record-modal')">✕</button>
+    </div>
+    <div id="add-record-date" style="font-size:13px;color:var(--text2);margin-bottom:16px;font-weight:600"></div>
+
+    <div class="field">
+      <label class="field-label">เลือกสูตร (ถ้ามี)</label>
+      <select id="ar-recipe-select" onchange="onRecipeSelect()">
+        <option value="">— กรอกเอง —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">ชื่อเมนู / สินค้า</label>
+      <input type="text" id="ar-name" placeholder="เช่น น้ำข้าวโพด, บราวนี่">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">ต้นทุน/หน่วย (บาท)</label>
+        <input type="number" id="ar-cost-unit" placeholder="เช่น 5.82" min="0" step="any" oninput="calcRecordTotal()">
+      </div>
+      <div class="field">
+        <label class="field-label">จำนวนที่ทำ</label>
+        <input type="number" id="ar-qty" placeholder="เช่น 50" min="1" step="1" oninput="calcRecordTotal()">
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">หน่วย</label>
+      <select id="ar-unit">
+        <option>แก้ว</option><option>ชิ้น</option><option>จาน</option>
+        <option>กล่อง</option><option>ถุง</option><option>อัน</option><option>ลูก</option>
+      </select>
+    </div>
+
+    <div class="calc-preview">
+      <span class="calc-preview-label">ต้นทุนรวมวันนี้</span>
+      <span class="calc-preview-val" id="ar-total-preview">0 บาท</span>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveRecord()">💾 บันทึกรายการ</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   STATE
+════════════════════════════════════════ */
+let ingredients = [], packaging = [], miscType = 'percent';
+let savedRecipes = [], dailyRecords = [];
+let ingCounter = 0, pkgCounter = 0;
+let pendingIngId = null;
+let currentTab = 'calculate';
+let calcDate = ''; // date of current calc session (YYYY-MM-DD)
+
+// Calendar state
+let calYear, calMonth, selectedDate; // selectedDate = 'YYYY-MM-DD'
+
+/* ════════════════════════════════════════
+   THAI LOCALE
+════════════════════════════════════════ */
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const THAI_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function thaiDateLabel(dateStr) {
+  // dateStr = 'YYYY-MM-DD'
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return `${d} ${THAI_MONTHS_SHORT[m-1]} ${y + 543}`;
+}
+function dateToKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function todayKey() {
+  const t = new Date();
+  return dateToKey(t.getFullYear(), t.getMonth(), t.getDate());
+}
+
+/* ════════════════════════════════════════
+   UNITS
+════════════════════════════════════════ */
+const UNITS = {
+  'กิโลกรัม':  {g:'weight',f:1000}, 'กรัม':{g:'weight',f:1},
+  'ลิตร':{g:'volume',f:1000}, 'มิลลิลิตร':{g:'volume',f:1},
+  'ช้อนโต๊ะ':{g:'volume',f:15}, 'ช้อนชา':{g:'volume',f:5},
+  'ชิ้น':{g:'count',f:1}, 'ลูก':{g:'count',f:1}, 'ฟอง':{g:'count',f:1},
+  'ถุง':{g:'count',f:1}, 'กล่อง':{g:'count',f:1}, 'แพ็ค':{g:'count',f:1}, 'อัน':{g:'count',f:1},
+};
+const BUY_UNITS = ['กิโลกรัม','กรัม','ลิตร','มิลลิลิตร','ชิ้น','ลูก','ฟอง','ถุง','กล่อง','แพ็ค','อัน'];
+const USE_UNITS = ['กรัม','กิโลกรัม','มิลลิลิตร','ลิตร','ช้อนโต๊ะ','ช้อนชา','ชิ้น','ลูก','ฟอง','ถุง','กล่อง','แพ็ค','อัน'];
+function unitOpts(list, sel) { return list.map(u=>`<option${u===sel?' selected':''}>${u}</option>`).join(''); }
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  window.scrollTo(0,0);
+
+  const mainTabs = ['calculate','settings','saved'];
+  if (mainTabs.includes(page)) currentTab = page;
+
+  // Tab highlight
+  ['calculate','settings','saved'].forEach(t => {
+    const el = document.getElementById('tab-'+t);
+    if (el) el.className = 'nav-tab' + (t===currentTab?' active':'');
+  });
+
+  // Bottom nav visibility
+  const nav = document.getElementById('bottom-nav');
+  nav.style.display = page==='summary' ? 'none' : 'flex';
+
+  try {
+    if (page==='saved') renderSavedList();
+    if (page==='settings') renderBackupList();
+  } catch(e) {
+    console.error('render error:', e);
+    const cont = document.getElementById(page==='saved'?'saved-list':'backup-recipe-list');
+    if (cont) cont.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">เกิดข้อผิดพลาด</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+(function init() {
+  try { const r=localStorage.getItem('kitcost_v1'); if(r) savedRecipes=JSON.parse(r); } catch(e){}
+  try { const r=localStorage.getItem('kitcost_daily'); if(r) dailyRecords=JSON.parse(r); } catch(e){}
+
+  const today = new Date();
+  calYear = today.getFullYear(); calMonth = today.getMonth();
+  selectedDate = todayKey();
+
+  // Show today's Thai date in calculate tab
+  const iso = todayKey();
+  document.getElementById('calc-date-input').value = iso;
+  setCalcDate(iso);
+
+  // Pre-load น้ำข้าวโพด demo
+  document.getElementById('menu-name').value = 'น้ำข้าวโพด (ข้าวโพดแกะ)';
+  addIngredient({name:'ข้าวโพดแกะ', buyAmt:'1', buyUnit:'กิโลกรัม', buyPrice:'69', useAmt:'66.67', useUnit:'กรัม'});
+  addPackaging({name:'แก้วพลาสติก', cost:'0.83'});
+  setMiscType('percent');
+  document.getElementById('misc-pct').value='0';
+
+  navigate('calculate');
+})();
+
+/* ════════════════════════════════════════
+   RESET
+════════════════════════════════════════ */
+function resetCalc() {
+  if ((ingredients.length>0||packaging.length>0) && !confirm('เริ่มคำนวณใหม่? ข้อมูลที่กรอกไว้จะหายไป')) return;
+  ingredients=[]; packaging=[]; miscType='percent';
+  ingCounter=0; pkgCounter=0;
+  document.getElementById('menu-name').value='';
+  document.getElementById('ing-list').innerHTML='';
+  document.getElementById('pkg-list').innerHTML='';
+  document.getElementById('misc-pct').value='10';
+  document.getElementById('misc-fix').value='0';
+  setMiscType('percent');
+  addIngredient();
+  navigate('calculate');
+}
+
+/* ════════════════════════════════════════
+   INGREDIENTS
+════════════════════════════════════════ */
+function addIngredient(data) {
+  const id=++ingCounter;
+  const ing=data?{...data,id}:{id,name:'',buyAmt:'',buyUnit:'กิโลกรัม',buyPrice:'',useAmt:'',useUnit:'กรัม'};
+  ingredients.push(ing);
+  const div=document.createElement('div');
+  div.className='ing-card'; div.id='ing-'+id;
+  div.innerHTML=buildIngHTML(ing);
+  document.getElementById('ing-list').appendChild(div);
+}
+function buildIngHTML(ing) {
+  const c=calcIngCost(ing);
+  const costHTML=c==='err'?`<span class="cost-err">⚠️ หน่วยไม่ตรงกัน</span>`:`<span class="cost-val">${fmt(c||0)} บาท</span>`;
+  return `
+    <div class="ing-header"><span class="ing-label">วัตถุดิบ</span><button class="btn-delete" onclick="removeIng(${ing.id})">✕ ลบ</button></div>
+    <div class="toggle-tabs">
+      <button class="toggle-tab active">กรอกเอง</button>
+      <button class="toggle-tab inactive" onclick="openRecipePicker(${ing.id})">จากสูตรที่บันทึกไว้</button>
+    </div>
+    <div class="field"><label class="field-label">ชื่อวัตถุดิบ</label>
+      <input type="text" value="${esc(ing.name)}" placeholder="เช่น น้ำตาลทราย" oninput="updIng(${ing.id},'name',this.value)"></div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">ซื้อมาเท่าไหร่</label>
+        <input type="number" value="${ing.buyAmt}" placeholder="เช่น 1" min="0" step="any" oninput="updIng(${ing.id},'buyAmt',this.value)"></div>
+      <div class="field"><label class="field-label">หน่วยที่ซื้อ</label>
+        <select onchange="updIng(${ing.id},'buyUnit',this.value)">${unitOpts(BUY_UNITS,ing.buyUnit)}</select></div>
+    </div>
+    <div class="field"><label class="field-label">ราคาที่ซื้อ (บาท)</label>
+      <input type="number" value="${ing.buyPrice}" placeholder="เช่น 30" min="0" step="any" oninput="updIng(${ing.id},'buyPrice',this.value)"></div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">ใช้ไปเท่าไหร่</label>
+        <input type="number" id="use-amt-${ing.id}" value="${ing.useAmt}" placeholder="เช่น 100" min="0" step="any" oninput="updIng(${ing.id},'useAmt',this.value);clearServe(${ing.id})"></div>
+      <div class="field"><label class="field-label">หน่วยที่ใช้</label>
+        <select onchange="updIng(${ing.id},'useUnit',this.value)">${unitOpts(USE_UNITS,ing.useUnit)}</select></div>
+    </div>
+    <div class="serve-helper">
+      <span class="serve-helper-label">หรือซื้อมาทั้งหมดนี้ได้</span>
+      <input type="number" id="serve-${ing.id}" placeholder="เช่น 10" min="1" step="any" oninput="autoFillUse(${ing.id},this.value)">
+      <span class="serve-helper-label">แก้ว / จาน</span>
+    </div>
+    <div class="cost-row"><span class="cost-label">ต้นทุนส่วนนี้</span><span id="cost-${ing.id}">${costHTML}</span></div>`;
+}
+function autoFillUse(ingId, servings) {
+  const ing = ingredients.find(i => i.id === ingId);
+  if (!ing) return;
+  const s = parseFloat(servings), b = parseFloat(ing.buyAmt);
+  if (s > 0 && b > 0) {
+    const useAmt = parseFloat((b / s).toFixed(4));
+    // Match useUnit to buyUnit so units are consistent
+    ing.useAmt = String(useAmt);
+    ing.useUnit = ing.buyUnit;
+    const input = document.getElementById('use-amt-' + ingId);
+    if (input) input.value = useAmt;
+    // Update useUnit select to match buyUnit
+    const sel = document.querySelector(`#ing-${ingId} select:last-of-type`);
+    if (sel) sel.value = ing.buyUnit;
+    // Update cost display
+    const c = calcIngCost(ing);
+    const el = document.getElementById('cost-' + ingId);
+    if (el) el.innerHTML = c === 'err'
+      ? `<span class="cost-err">⚠️ หน่วยไม่ตรงกัน</span>`
+      : `<span class="cost-val">${fmt(c||0)} บาท</span>`;
+  }
+}
+function clearServe(ingId) {
+  const el = document.getElementById('serve-' + ingId);
+  if (el) el.value = '';
+}
+function removeIng(id) {
+  ingredients=ingredients.filter(i=>i.id!==id);
+  const el=document.getElementById('ing-'+id); if(el) el.remove();
+}
+function updIng(id,field,value) {
+  const ing=ingredients.find(i=>i.id===id); if(!ing) return;
+  ing[field]=value;
+  const c=calcIngCost(ing);
+  const el=document.getElementById('cost-'+id); if(!el) return;
+  el.innerHTML=c==='err'?`<span class="cost-err">⚠️ หน่วยไม่ตรงกัน</span>`:`<span class="cost-val">${fmt(c||0)} บาท</span>`;
+}
+function calcIngCost(ing) {
+  const ba=parseFloat(ing.buyAmt),bp=parseFloat(ing.buyPrice),ua=parseFloat(ing.useAmt);
+  if(!ing.buyAmt||!ing.buyPrice||!ing.useAmt) return null;
+  if(isNaN(ba)||isNaN(bp)||isNaN(ua)||ba<=0) return null;
+  const bu=UNITS[ing.buyUnit],uu=UNITS[ing.useUnit];
+  if(!bu||!uu) return null;
+  if(bu.g!==uu.g) return 'err';
+  return (ua*uu.f)/(ba*bu.f)*bp;
+}
+
+/* ════════════════════════════════════════
+   PACKAGING
+════════════════════════════════════════ */
+function addPackaging(data) {
+  const id=++pkgCounter;
+  const pkg=data?{...data,id}:{id,name:'',cost:''};
+  packaging.push(pkg);
+  const div=document.createElement('div');
+  div.className='card'; div.id='pkg-'+id;
+  div.innerHTML=`
+    <div class="ing-header"><span class="ing-label">บรรจุภัณฑ์</span><button class="btn-delete" onclick="removePkg(${id})">✕ ลบ</button></div>
+    <div class="field"><label class="field-label">ชื่อบรรจุภัณฑ์</label>
+      <input type="text" value="${esc(pkg.name)}" placeholder="เช่น กล่อง, ถุง, แก้ว" oninput="updPkg(${id},'name',this.value)"></div>
+    <div class="field" style="margin-bottom:6px"><label class="field-label">ราคาต่อชิ้น / ต่อหน่วย (บาท)</label>
+      <input type="number" id="pkg-cost-${id}" value="${pkg.cost}" placeholder="เช่น 2" min="0" step="any" oninput="updPkg(${id},'cost',this.value)"></div>
+    <div class="serve-helper">
+      <span class="serve-helper-label">หรือซื้อมา</span>
+      <input type="number" id="pkg-price-${id}" placeholder="ราคา" min="0" step="any" style="width:72px" oninput="autoFillPkg(${id})">
+      <span class="serve-helper-label">บาท ได้</span>
+      <input type="number" id="pkg-qty-${id}" placeholder="จำนวน" min="1" step="any" style="width:72px" oninput="autoFillPkg(${id})">
+      <span class="serve-helper-label">ชิ้น</span>
+    </div>`;
+  document.getElementById('pkg-list').appendChild(div);
+}
+function autoFillPkg(id) {
+  const priceEl = document.getElementById('pkg-price-' + id);
+  const qtyEl   = document.getElementById('pkg-qty-' + id);
+  const costEl  = document.getElementById('pkg-cost-' + id);
+  if (!priceEl || !qtyEl || !costEl) return;
+  const price = parseFloat(priceEl.value), qty = parseFloat(qtyEl.value);
+  if (price > 0 && qty > 0) {
+    const cost = parseFloat((price / qty).toFixed(4));
+    costEl.value = cost;
+    updPkg(id, 'cost', String(cost));
+  }
+}
+function removePkg(id) {
+  packaging=packaging.filter(p=>p.id!==id);
+  const el=document.getElementById('pkg-'+id); if(el) el.remove();
+}
+function updPkg(id,field,value) { const p=packaging.find(p=>p.id===id); if(p) p[field]=value; }
+
+/* ════════════════════════════════════════
+   MISC
+════════════════════════════════════════ */
+function setMiscType(type) {
+  miscType=type;
+  document.querySelectorAll('input[name="misc-type"]').forEach(r=>{
+    r.checked=(r.value===type);
+    r.closest('.radio-opt').className='radio-opt'+(r.value===type?' selected':'');
+  });
+  document.getElementById('misc-percent-wrap').style.display=type==='percent'?'block':'none';
+  document.getElementById('misc-fixed-wrap').style.display=type==='fixed'?'block':'none';
+}
+
+/* ════════════════════════════════════════
+   TOTALS
+════════════════════════════════════════ */
+function getTotals() {
+  let ingTotal=0; const ingBreak=[];
+  ingredients.forEach(ing=>{
+    const c=calcIngCost(ing); const cost=(c&&c!=='err')?c:0;
+    ingTotal+=cost; ingBreak.push({name:ing.name||'(ไม่มีชื่อ)',cost,err:c==='err'});
+  });
+  let pkgTotal=0; const pkgBreak=[];
+  packaging.forEach(pkg=>{ const cost=parseFloat(pkg.cost)||0; pkgTotal+=cost; pkgBreak.push({name:pkg.name||'(ไม่มีชื่อ)',cost}); });
+  const sub=ingTotal+pkgTotal;
+  const pct=parseFloat(document.getElementById('misc-pct').value)||0;
+  const fix=parseFloat(document.getElementById('misc-fix').value)||0;
+  const miscCost=miscType==='percent'?sub*pct/100:fix;
+  return {ingTotal,ingBreak,pkgTotal,pkgBreak,miscCost,
+    miscLabel:miscType==='percent'?`ค่าจิปาถะ (${pct}%)`:'ค่าจิปาถะ (กำหนดเอง)',
+    sub,total:sub+miscCost,miscType,miscVal:miscType==='percent'?pct:fix};
+}
+
+/* ════════════════════════════════════════
+   SUMMARY
+════════════════════════════════════════ */
+function showSummary() {
+  if(ingredients.length===0){showToast('กรุณาใส่วัตถุดิบอย่างน้อย 1 รายการ');return;}
+  const t=getTotals(); const menuName=document.getElementById('menu-name').value.trim();
+  document.getElementById('summary-menu-name').textContent=menuName?`📌 ${menuName}`:'';
+  document.getElementById('sum-total').textContent=`${fmt(t.total)} บาท`;
+  let html='';
+  if(t.ingBreak.length){
+    html+=`<div class="breakdown-section">วัตถุดิบ</div>`;
+    t.ingBreak.forEach(r=>{ html+=`<div class="breakdown-row"><span class="breakdown-name">${esc(r.name)}${r.err?' <span style="color:var(--red);font-size:11px">(หน่วยไม่ตรง)</span>':''}</span><span class="breakdown-amt">${fmt(r.cost)} บาท</span></div>`; });
+    if(t.ingBreak.length>1) html+=`<div class="breakdown-row"><span class="breakdown-name" style="font-weight:600">รวมวัตถุดิบ</span><span class="breakdown-amt">${fmt(t.ingTotal)} บาท</span></div>`;
+  }
+  if(t.pkgBreak.length){
+    html+=`<div class="breakdown-section">บรรจุภัณฑ์</div>`;
+    t.pkgBreak.forEach(r=>{ html+=`<div class="breakdown-row"><span class="breakdown-name">${esc(r.name)}</span><span class="breakdown-amt">${fmt(r.cost)} บาท</span></div>`; });
+    if(t.pkgBreak.length>1) html+=`<div class="breakdown-row"><span class="breakdown-name" style="font-weight:600">รวมบรรจุภัณฑ์</span><span class="breakdown-amt">${fmt(t.pkgTotal)} บาท</span></div>`;
+  }
+  if(t.miscCost>0){ html+=`<div class="breakdown-section">ค่าจิปาถะ</div><div class="breakdown-row"><span class="breakdown-name">${t.miscLabel}</span><span class="breakdown-amt">${fmt(t.miscCost)} บาท</span></div>`; }
+  html+=`<div class="breakdown-total-row"><span style="font-size:16px;font-weight:700">ต้นทุนรวม</span><span style="font-size:20px;font-weight:800;color:var(--orange)">${fmt(t.total)} บาท</span></div>`;
+  document.getElementById('sum-breakdown').innerHTML=html;
+  const btn=document.getElementById('save-btn'); btn.textContent='💾 บันทึกสูตรนี้'; btn.disabled=false;
+  // Reset profit section
+  const sp=document.getElementById('sell-price'); if(sp) sp.value='';
+  const pr=document.getElementById('profit-result'); if(pr) pr.style.display='none';
+  navigate('summary');
+}
+function calcProfit(sellPrice) {
+  const sell = parseFloat(sellPrice);
+  const result = document.getElementById('profit-result');
+  if (!result) return;
+  if (!sell || sell <= 0) { result.style.display='none'; return; }
+  const cost = getTotals().total;
+  const profit = sell - cost;
+  const pct = (profit / sell) * 100;
+  result.style.display = 'block';
+  const bEl = document.getElementById('profit-baht');
+  const pEl = document.getElementById('profit-pct');
+  bEl.textContent = `${profit >= 0 ? '+' : ''}${fmt(profit)} บาท`;
+  bEl.style.color = profit >= 0 ? 'var(--green-positive)' : 'var(--red)';
+  pEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+  pEl.style.color = profit >= 0 ? 'var(--green-positive)' : 'var(--red)';
+}
+
+/* ════════════════════════════════════════
+   SAVE RECIPE
+════════════════════════════════════════ */
+function saveRecipe(btn) {
+  const t=getTotals(); const menuName=document.getElementById('menu-name').value.trim();
+  const recipe={id:Date.now(),name:menuName||'สูตรไม่มีชื่อ',
+    savedAt:thaiDateLabel(calcDate),
+    ingredients:ingredients.map(i=>({...i})),packaging:packaging.map(p=>({...p})),
+    miscType:t.miscType,miscVal:t.miscVal,total:t.total};
+  savedRecipes.unshift(recipe);
+  try{localStorage.setItem('kitcost_v1',JSON.stringify(savedRecipes));}catch(e){}
+  btn.textContent='✅ บันทึกแล้ว!'; btn.disabled=true;
+  showToast('บันทึกสูตรเรียบร้อย!');
+}
+
+/* ════════════════════════════════════════
+   SAVED RECIPES
+════════════════════════════════════════ */
+function renderSavedList() {
+  const el=document.getElementById('saved-list');
+  if(!el) return;
+  if(!savedRecipes.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📒</div><div class="empty-text">ยังไม่มีสูตรที่บันทึกไว้</div><div class="empty-sub">คำนวณต้นทุนแล้วกด "บันทึกสูตรนี้" ได้เลย</div></div>`;return;
+  }
+  // Defensive: filter out corrupted recipes
+  savedRecipes = savedRecipes.filter(r => r && r.id && Array.isArray(r.ingredients) && Array.isArray(r.packaging));
+  try { localStorage.setItem('kitcost_v1', JSON.stringify(savedRecipes)); } catch(e){}
+  if(!savedRecipes.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📒</div><div class="empty-text">ยังไม่มีสูตรที่บันทึกไว้</div><div class="empty-sub">คำนวณต้นทุนแล้วกด "บันทึกสูตรนี้" ได้เลย</div></div>`;return;
+  }
+  // Group recipes by date
+  const groups = [];
+  const seenDates = {};
+  savedRecipes.forEach(r => {
+    const d = r.savedAt || 'ไม่ระบุวันที่';
+    if (!seenDates[d]) { seenDates[d] = []; groups.push({ date: d, recipes: seenDates[d] }); }
+    seenDates[d].push(r);
+  });
+
+  function buildCard(r) {
+    let detailRows = '';
+    r.ingredients.forEach(ing => {
+      const c = calcIngCost(ing);
+      const costStr = (c && c !== 'err') ? `${fmt(c)} บาท` : (c === 'err' ? '⚠️ หน่วยไม่ตรง' : '—');
+      const subText = (ing.buyAmt && ing.buyUnit && ing.buyPrice)
+        ? `ซื้อ ${ing.buyAmt} ${ing.buyUnit} = ${ing.buyPrice} บาท &bull; ใช้ ${ing.useAmt} ${ing.useUnit}`
+        : '';
+      detailRows += `<div class="detail-row">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center"><span class="detail-type">วัตถุดิบ</span><span class="detail-name">${esc(ing.name||'—')}</span></div>
+          ${subText ? `<div class="detail-sub">${subText}</div>` : ''}
+        </div>
+        <span class="detail-cost">${costStr}</span>
+      </div>`;
+    });
+    r.packaging.forEach(pkg => {
+      detailRows += `<div class="detail-row">
+        <div style="flex:1"><div style="display:flex;align-items:center"><span class="detail-type">บรรจุ</span><span class="detail-name">${esc(pkg.name||'—')}</span></div></div>
+        <span class="detail-cost">${fmt(pkg.cost||0)} บาท</span>
+      </div>`;
+    });
+    if (r.miscVal && parseFloat(r.miscVal) > 0) {
+      const miscLabel = r.miscType === 'percent' ? `ค่าจิปาถะ ${r.miscVal}%` : 'ค่าจิปาถะ';
+      const ingSum = r.ingredients.reduce((s,ing)=>{ const c=calcIngCost(ing); return s+(c&&c!=='err'?c:0); },0);
+      const pkgSum = r.packaging.reduce((s,p)=>s+(parseFloat(p.cost)||0),0);
+      const miscCost = r.miscType==='percent' ? (ingSum+pkgSum)*r.miscVal/100 : parseFloat(r.miscVal)||0;
+      detailRows += `<div class="detail-row">
+        <div style="flex:1"><div style="display:flex;align-items:center"><span class="detail-type">จิปาถะ</span><span class="detail-name">${miscLabel}</span></div></div>
+        <span class="detail-cost">${fmt(miscCost)} บาท</span>
+      </div>`;
+    }
+    detailRows += `<div class="detail-total-row">
+      <span style="font-size:14px;font-weight:700">ต้นทุนรวมต่อหน่วย</span>
+      <span style="font-size:18px;font-weight:800;color:var(--orange)">${fmt(r.total)} บาท</span>
+    </div>`;
+    return `
+    <div class="saved-card" id="scard-${r.id}" onclick="toggleSavedDetail(${r.id}, event)">
+      <div class="saved-header">
+        <div style="flex:1;min-width:0;padding-right:8px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="saved-name">${esc(r.name)}</div>
+            <span class="toggle-arrow" id="sarrow-${r.id}">▸</span>
+          </div>
+        </div>
+        <div class="saved-cost">${fmt(r.total)} ฿</div>
+      </div>
+      <div class="saved-meta">${r.ingredients.length} วัตถุดิบ${r.packaging.length?` &bull; ${r.packaging.length} บรรจุภัณฑ์`:''}</div>
+      <div class="saved-actions" onclick="event.stopPropagation()">
+        <button class="btn-sm btn-sm-outline" onclick="loadRecipe(${r.id})">📋 โหลดสูตร</button>
+        <button class="btn-sm btn-sm-danger" onclick="deleteRecipe(${r.id})">🗑 ลบ</button>
+      </div>
+      <div class="saved-detail" id="sdetail-${r.id}">${detailRows}</div>
+    </div>`;
+  }
+
+  el.innerHTML = groups.map(g => `
+    <div class="date-group-header">📅 ${g.date}</div>
+    ${g.recipes.map(buildCard).join('')}
+  `).join('');
+}
+function toggleSavedDetail(id, e) {
+  const detail = document.getElementById('sdetail-'+id);
+  const arrow  = document.getElementById('sarrow-'+id);
+  if (!detail) return;
+  const open = detail.classList.toggle('open');
+  arrow.textContent = open ? '▾' : '▸';
+  arrow.style.transform = '';
+}
+
+function loadRecipe(id) {
+  const r=savedRecipes.find(x=>x.id===id); if(!r) return;
+  ingredients=[]; packaging=[]; ingCounter=0; pkgCounter=0;
+  document.getElementById('ing-list').innerHTML=''; document.getElementById('pkg-list').innerHTML='';
+  document.getElementById('menu-name').value=r.name==='สูตรไม่มีชื่อ'?'':r.name;
+  r.ingredients.forEach(ing=>addIngredient(ing));
+  r.packaging.forEach(pkg=>addPackaging(pkg));
+  setMiscType(r.miscType||'percent');
+  if(r.miscType==='percent') document.getElementById('misc-pct').value=r.miscVal||10;
+  else document.getElementById('misc-fix').value=r.miscVal||0;
+  showToast(`โหลดสูตร "${r.name}" แล้ว`); navigate('calculate');
+}
+function deleteRecipe(id) {
+  const r=savedRecipes.find(x=>x.id===id); if(!r||!confirm(`ลบสูตร "${r.name}"?`)) return;
+  savedRecipes=savedRecipes.filter(x=>x.id!==id);
+  try{localStorage.setItem('kitcost_v1',JSON.stringify(savedRecipes));}catch(e){}
+  renderSavedList();
+}
+
+/* ════════════════════════════════════════
+   RECIPE PICKER (for ingredient load)
+════════════════════════════════════════ */
+function openRecipePicker(ingId) {
+  pendingIngId=ingId;
+  const list=document.getElementById('modal-recipe-list');
+  if(!savedRecipes.length){
+    list.innerHTML=`<div class="empty" style="padding:30px 0"><div class="empty-icon">📒</div><div class="empty-text">ยังไม่มีสูตรบันทึกไว้</div></div>`;
+  } else {
+    list.innerHTML=savedRecipes.map(r=>`
+      <div class="modal-item" onclick="pickRecipe(${r.id})">
+        <div class="modal-item-name">${esc(r.name)}</div>
+        <div class="modal-item-meta">${r.ingredients.length} วัตถุดิบ &bull; ต้นทุน ${fmt(r.total)} บาท</div>
+      </div>`).join('');
+  }
+  openModal('recipe-modal');
+}
+function pickRecipe(recipeId) {
+  const recipe=savedRecipes.find(r=>r.id===recipeId); if(!recipe) return;
+  if(pendingIngId){
+    ingredients=ingredients.filter(i=>i.id!==pendingIngId);
+    const el=document.getElementById('ing-'+pendingIngId); if(el) el.remove();
+  }
+  recipe.ingredients.forEach(ing=>addIngredient(ing));
+  closeModal('recipe-modal');
+  showToast(`โหลดวัตถุดิบจาก "${recipe.name}" แล้ว`);
+}
+
+/* ════════════════════════════════════════
+   CALENDAR
+════════════════════════════════════════ */
+function renderCalendar() {
+  const y=calYear, m=calMonth;
+  document.getElementById('cal-title').textContent=`${THAI_MONTHS[m]} ${y+543}`;
+
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const todayStr=dateToKey(today.getFullYear(),today.getMonth(),today.getDate());
+
+  // Build date→cost map for dots
+  const dateCosts={};
+  dailyRecords.forEach(r=>{
+    if(!dateCosts[r.date]) dateCosts[r.date]=0;
+    dateCosts[r.date]+=r.totalCost;
+  });
+
+  let html='';
+  // Empty cells before first day
+  for(let i=0;i<firstDay;i++) html+=`<div class="cal-cell empty"></div>`;
+
+  for(let d=1;d<=daysInMonth;d++){
+    const key=dateToKey(y,m,d);
+    const isToday=key===todayStr;
+    const isSel=key===selectedDate;
+    const hasCost=dateCosts[key]!==undefined;
+    let cls='cal-cell';
+    if(isToday) cls+=' today';
+    if(isSel) cls+=' selected';
+    html+=`<div class="${cls}" onclick="selectDate('${key}')">
+      <span class="cal-num">${d}</span>
+      ${hasCost?`<div class="cal-dots"><div class="cal-dot"></div></div><div class="cal-cost-mini">${fmt(dateCosts[key])}</div>`:''}
+    </div>`;
+  }
+  document.getElementById('cal-cells').innerHTML=html;
+
+  renderMonthStats();
+  if(selectedDate) renderDayRecords();
+}
+
+function selectDate(dateStr) {
+  selectedDate=dateStr;
+  renderCalendar();
+  renderDayRecords();
+}
+function prevMonth() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function goToday() {
+  const t=new Date(); calYear=t.getFullYear(); calMonth=t.getMonth();
+  selectedDate=todayKey(); renderCalendar();
+}
+
+function renderDayRecords() {
+  const recs=dailyRecords.filter(r=>r.date===selectedDate);
+  const label=document.getElementById('daily-date-label');
+  const list=document.getElementById('daily-records-list');
+
+  label.textContent=`📋 รายการวันที่ ${thaiDateLabel(selectedDate)}`;
+
+  if(!recs.length){
+    list.innerHTML=`<div class="empty" style="padding:32px 0"><div class="empty-icon">📭</div><div class="empty-text">ไม่มีรายการวันนี้</div><div class="empty-sub">กด + เพื่อเพิ่มรายการ</div></div>`;
+    return;
+  }
+
+  const dayTotal=recs.reduce((s,r)=>s+r.totalCost,0);
+  let html=`<div class="day-total-row"><span class="day-total-label">ต้นทุนรวมวันนี้</span><span class="day-total-val">${fmt(dayTotal)} บาท</span></div>`;
+  recs.forEach(r=>{
+    html+=`<div class="daily-record-card">
+      <div class="daily-record-icon">🍵</div>
+      <div class="daily-record-body">
+        <div class="daily-record-name">${esc(r.menuName)}</div>
+        <div class="daily-record-detail">${fmt(r.costPerUnit)} บาท × ${r.qty} ${r.unit}</div>
+      </div>
+      <div class="daily-record-right">
+        <div class="daily-record-total">${fmt(r.totalCost)} ฿</div>
+        <button class="btn-sm btn-sm-danger" style="margin-top:6px;font-size:11px;padding:4px 8px" onclick="deleteRecord(${r.id})">ลบ</button>
+      </div>
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+
+function renderMonthStats() {
+  const recs=dailyRecords.filter(r=>{
+    const [y,m]=r.date.split('-').map(Number);
+    return y===calYear && m===calMonth+1;
+  });
+  const totalCost=recs.reduce((s,r)=>s+r.totalCost,0);
+  const days=new Set(recs.map(r=>r.date)).size;
+  document.getElementById('stat-month-cost').textContent=`${fmt(totalCost)} บาท`;
+  document.getElementById('stat-month-days').textContent=`${days} วัน`;
+  document.getElementById('stat-month-count').textContent=`${recs.length} รายการ`;
+}
+
+/* ════════════════════════════════════════
+   ADD DAILY RECORD
+════════════════════════════════════════ */
+function openAddRecord() {
+  if(!selectedDate) selectedDate=todayKey();
+  document.getElementById('add-record-date').textContent=`วันที่: ${thaiDateLabel(selectedDate)}`;
+  document.getElementById('ar-name').value='';
+  document.getElementById('ar-cost-unit').value='';
+  document.getElementById('ar-qty').value='';
+  document.getElementById('ar-total-preview').textContent='0 บาท';
+
+  // Populate recipe dropdown
+  const sel=document.getElementById('ar-recipe-select');
+  sel.innerHTML=`<option value="">— กรอกเอง —</option>`+
+    savedRecipes.map(r=>`<option value="${r.id}">${esc(r.name)} (${fmt(r.total)} บ./หน่วย)</option>`).join('');
+
+  openModal('add-record-modal');
+}
+function onRecipeSelect() {
+  const id=parseInt(document.getElementById('ar-recipe-select').value);
+  if(!id){ document.getElementById('ar-cost-unit').value=''; return; }
+  const r=savedRecipes.find(x=>x.id===id); if(!r) return;
+  document.getElementById('ar-name').value=r.name;
+  document.getElementById('ar-cost-unit').value=r.total.toFixed(2);
+  calcRecordTotal();
+}
+function calcRecordTotal() {
+  const c=parseFloat(document.getElementById('ar-cost-unit').value)||0;
+  const q=parseFloat(document.getElementById('ar-qty').value)||0;
+  document.getElementById('ar-total-preview').textContent=`${fmt(c*q)} บาท`;
+}
+function saveRecord() {
+  const name=document.getElementById('ar-name').value.trim();
+  const costUnit=parseFloat(document.getElementById('ar-cost-unit').value)||0;
+  const qty=parseFloat(document.getElementById('ar-qty').value)||0;
+  const unit=document.getElementById('ar-unit').value;
+  if(!name){showToast('กรุณาใส่ชื่อเมนู');return;}
+  if(qty<=0){showToast('กรุณาใส่จำนวนที่ทำ');return;}
+  const record={id:Date.now(),date:selectedDate,menuName:name,costPerUnit:costUnit,qty,unit,totalCost:costUnit*qty};
+  dailyRecords.push(record);
+  try{localStorage.setItem('kitcost_daily',JSON.stringify(dailyRecords));}catch(e){}
+  closeModal('add-record-modal');
+  renderCalendar();
+  renderDayRecords();
+  showToast(`บันทึกรายการ "${name}" แล้ว`);
+}
+function deleteRecord(id) {
+  if(!confirm('ลบรายการนี้?')) return;
+  dailyRecords=dailyRecords.filter(r=>r.id!==id);
+  try{localStorage.setItem('kitcost_daily',JSON.stringify(dailyRecords));}catch(e){}
+  renderCalendar();
+  renderDayRecords();
+}
+
+/* ════════════════════════════════════════
+   MODALS
+════════════════════════════════════════ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function handleModalClick(e,id){ if(e.target===document.getElementById(id)) closeModal(id); }
+
+/* ════════════════════════════════════════
+   UTILITIES
+════════════════════════════════════════ */
+function fmt(n){
+  n = parseFloat(n);
+  if(!n||isNaN(n)) return '0';
+  if(n%1===0) return n.toLocaleString('th-TH');
+  return (+n.toFixed(2)).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function esc(s){ if(!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+/* ════════════════════════════════════════
+   CALC DATE
+════════════════════════════════════════ */
+function setCalcDate(iso) {
+  calcDate = iso;
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const thaiDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  document.getElementById('calc-date-text').textContent =
+    `${thaiDays[dt.getDay()]} ${d} ${THAI_MONTHS_SHORT[m-1]} ${y+543}`;
+}
+function onCalcDateChange(iso) {
+  if (!iso) return;
+  setCalcDate(iso);
+  const isToday = iso === todayKey();
+  showToast(isToday ? 'เปลี่ยนกลับเป็นวันนี้แล้ว' : `เปลี่ยนวันที่เป็น ${document.getElementById('calc-date-text').textContent}`);
+}
+
+/* ════════════════════════════════════════
+   SETTINGS — BACKUP / EXPORT
+════════════════════════════════════════ */
+let backupMode = 'all';
+let allRecipesSelected = false;
+
+function setBackupMode(mode) {
+  backupMode = mode;
+  document.getElementById('mode-all-opt').className = 'radio-opt' + (mode==='all'?' selected':'');
+  document.getElementById('mode-select-opt').className = 'radio-opt' + (mode==='selected'?' selected':'');
+  document.querySelector(`input[name="backup-mode"][value="${mode}"]`).checked = true;
+  document.getElementById('backup-checklist').style.display = mode==='selected' ? 'block' : 'none';
+}
+
+function renderBackupList() {
+  const el = document.getElementById('backup-recipe-list');
+  if (!savedRecipes.length) {
+    el.innerHTML = `<div class="empty" style="padding:20px 0"><div class="empty-icon">📒</div><div class="empty-text">ยังไม่มีสูตรที่บันทึกไว้</div></div>`;
+    return;
+  }
+  el.innerHTML = savedRecipes.map(r => `
+    <label style="display:flex;align-items:center;gap:12px;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;cursor:pointer;transition:all 0.15s"
+      onclick="this.style.borderColor=this.querySelector('input').checked?'var(--border)':'var(--orange)';this.style.background=this.querySelector('input').checked?'':'var(--orange-bg)'">
+      <input type="checkbox" class="recipe-checkbox" value="${r.id}"
+        style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;flex-shrink:0">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</div>
+        <div style="font-size:12px;color:var(--text3)">ต้นทุน ${fmt(r.total)} บาท &bull; บันทึก ${r.savedAt}</div>
+      </div>
+    </label>`).join('');
+  allRecipesSelected = false;
+  document.getElementById('btn-toggle-all').textContent = 'เลือกทั้งหมด';
+}
+
+function toggleAllRecipes() {
+  allRecipesSelected = !allRecipesSelected;
+  document.querySelectorAll('.recipe-checkbox').forEach(cb => {
+    cb.checked = allRecipesSelected;
+    const label = cb.closest('label');
+    label.style.borderColor = allRecipesSelected ? 'var(--orange)' : 'var(--border)';
+    label.style.background = allRecipesSelected ? 'var(--orange-bg)' : '';
+  });
+  document.getElementById('btn-toggle-all').textContent = allRecipesSelected ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด';
+}
+
+function exportCSV() {
+  let recipesToExport = savedRecipes;
+
+  if (backupMode === 'selected') {
+    const checked = [...document.querySelectorAll('.recipe-checkbox:checked')].map(cb => parseInt(cb.value));
+    if (!checked.length) { showToast('กรุณาเลือกสูตรอย่างน้อย 1 รายการ'); return; }
+    recipesToExport = savedRecipes.filter(r => checked.includes(r.id));
+  }
+
+  if (!recipesToExport.length) { showToast('ไม่มีสูตรให้ส่งออก'); return; }
+
+  const header = ['ชื่อสูตร','ประเภท','รายการ','ซื้อมา','หน่วยซื้อ','ราคา(บาท)','ใช้','หน่วยใช้','ต้นทุน(บาท)','วันที่บันทึก'];
+  const rows = [header];
+
+  recipesToExport.forEach(r => {
+    r.ingredients.forEach(ing => {
+      const c = calcIngCost(ing);
+      rows.push([r.name, 'วัตถุดิบ', ing.name||'', ing.buyAmt||'', ing.buyUnit||'', ing.buyPrice||'', ing.useAmt||'', ing.useUnit||'',
+        (c && c !== 'err') ? (+c.toFixed(4)) : '', r.savedAt]);
+    });
+    r.packaging.forEach(pkg => {
+      rows.push([r.name, 'บรรจุภัณฑ์', pkg.name||'', '', '', '', '', '', pkg.cost||'', r.savedAt]);
+    });
+    const miscLabel = r.miscType === 'percent' ? `ค่าจิปาถะ (${r.miscVal}%)` : 'ค่าจิปาถะ';
+    // Misc row (only if there's a value)
+    if (r.miscVal && parseFloat(r.miscVal) > 0) {
+      const ingSum = r.ingredients.reduce((s,ing)=>{ const c=calcIngCost(ing); return s+(c&&c!=='err'?c:0); },0);
+      const pkgSum = r.packaging.reduce((s,p)=>s+(parseFloat(p.cost)||0),0);
+      const miscCost = r.miscType==='percent' ? (ingSum+pkgSum)*r.miscVal/100 : parseFloat(r.miscVal)||0;
+      rows.push([r.name, 'ค่าจิปาถะ', miscLabel, '', '', '', '', '', +miscCost.toFixed(4), r.savedAt]);
+    }
+    rows.push([r.name, '★ รวม', '', '', '', '', '', '', +r.total.toFixed(4), r.savedAt]);
+  });
+
+  const csv = rows.map(row =>
+    row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
+  ).join('\r\n');
+
+  const bom = '﻿'; // UTF-8 BOM → Excel อ่านภาษาไทยได้
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `KitCost_${todayKey()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`ดาวน์โหลด CSV ${recipesToExport.length} สูตร เรียบร้อย!`);
+}
+
+function clearAllData() {
+  if (!savedRecipes.length) { showToast('ไม่มีข้อมูลที่จะล้าง'); return; }
+  if (!confirm(`ลบสูตรทั้งหมด ${savedRecipes.length} รายการ? ไม่สามารถกู้คืนได้`)) return;
+  savedRecipes = [];
+  try { localStorage.removeItem('kitcost_v1'); } catch(e) {}
+  showToast('ล้างข้อมูลเรียบร้อย');
+  renderBackupList();
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.className='toast show'; clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.className='toast';},2300);
+}
+</script>
+</body>
+</html>
