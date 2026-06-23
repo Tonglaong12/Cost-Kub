@@ -116,6 +116,10 @@
     .btn-dashed:hover { background: var(--orange-bg); }
     .btn-dashed-pink { border-color: #E0A0A0; color: #C4625A; }
     .btn-dashed-pink:hover { background: #F9ECEC; }
+    .batch-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 8px 0 0; font-size: 13px;
+    }
     .serve-helper {
       display: flex; align-items: center; gap: 8px;
       background: var(--yellow-bg); border: 1px solid var(--yellow-border);
@@ -479,7 +483,14 @@
       </div>
     </div>
     <label class="field-label">ชื่อเมนูหรือสินค้า</label>
-    <input type="text" id="menu-name" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่">
+    <input type="text" id="menu-name" list="menu-suggestions" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่">
+    <datalist id="menu-suggestions">
+      <option value="น้ำข้าวโพด">
+      <option value="น้ำแครอท">
+      <option value="น้ำเต้าหู้">
+      <option value="น้ำเต้าหู้ชานม">
+      <option value="น้ำฟักทอง">
+    </datalist>
   </div>
 
   <div style="padding: 0 18px 20px;">
@@ -829,7 +840,7 @@ function navigate(page) {
   // Pre-load น้ำข้าวโพด demo
   document.getElementById('menu-name').value = 'น้ำข้าวโพด (ข้าวโพดแกะ)';
   addIngredient({name:'ข้าวโพดแกะ', buyAmt:'1', buyUnit:'กิโลกรัม', buyPrice:'69', useAmt:'66.67', useUnit:'กรัม'});
-  addPackaging({name:'แก้วพลาสติก', cost:'0.83'});
+  addPackaging({name:'ถุงดูด', cost:'0.83'});
   setMiscType('percent');
   document.getElementById('misc-pct').value='0';
 
@@ -875,7 +886,7 @@ function buildIngHTML(ing) {
       <button class="toggle-tab inactive" onclick="openRecipePicker(${ing.id})">จากสูตรที่บันทึกไว้</button>
     </div>
     <div class="field"><label class="field-label">ชื่อวัตถุดิบ</label>
-      <input type="text" value="${esc(ing.name)}" placeholder="เช่น น้ำตาลทราย" oninput="updIng(${ing.id},'name',this.value)"></div>
+      <input type="text" value="${esc(ing.name)}" list="ing-suggestions" placeholder="เช่น น้ำตาลทราย" oninput="updIng(${ing.id},'name',this.value)"></div>
     <div class="field-row">
       <div class="field"><label class="field-label">ซื้อมาเท่าไหร่</label>
         <input type="number" value="${ing.buyAmt}" placeholder="เช่น 1" min="0" step="any" oninput="updIng(${ing.id},'buyAmt',this.value)"></div>
@@ -891,33 +902,89 @@ function buildIngHTML(ing) {
         <select onchange="updIng(${ing.id},'useUnit',this.value)">${unitOpts(USE_UNITS,ing.useUnit)}</select></div>
     </div>
     <div class="serve-helper">
-      <span class="serve-helper-label">หรือซื้อมาทั้งหมดนี้ได้</span>
-      <input type="number" id="serve-${ing.id}" placeholder="เช่น 10" min="1" step="any" oninput="autoFillUse(${ing.id},this.value)">
-      <span class="serve-helper-label">แก้ว / จาน</span>
+      <span class="serve-helper-label">หรือซื้อมาทำได้</span>
+      <input type="number" id="serve-${ing.id}" placeholder="เช่น 5" min="1" step="any" oninput="autoFillUse(${ing.id})">
+      <span class="serve-helper-label">รอบ แต่ละรอบทำ</span>
+      <input type="number" id="glasses-${ing.id}" placeholder="เช่น 3" min="1" step="any" oninput="autoFillUse(${ing.id})">
+      <span class="serve-helper-label">แก้ว/จาน</span>
     </div>
-    <div class="cost-row"><span class="cost-label">ต้นทุนส่วนนี้</span><span id="cost-${ing.id}">${costHTML}</span></div>`;
+    <div class="cost-row"><span class="cost-label">ต้นทุนส่วนนี้ (1 รอบ)</span><span id="cost-${ing.id}">${costHTML}</span></div>
+    <div class="serve-helper" style="margin-top:6px">
+      <span class="serve-helper-label">แต่ละรอบทำ</span>
+      <input type="number" id="gpr-${ing.id}" placeholder="เช่น 3" min="1" step="any" oninput="updPerGlass(${ing.id})">
+      <span class="serve-helper-label">แก้ว → ต้นทุน/แก้ว</span>
+      <span id="per-glass-${ing.id}" style="font-weight:700;color:var(--orange);white-space:nowrap">—</span>
+    </div>
+    <div class="batch-row" id="batch-${ing.id}">${buildBatchHTML(ing, ing.id)}</div>`;
 }
-function autoFillUse(ingId, servings) {
+function autoFillUse(ingId) {
   const ing = ingredients.find(i => i.id === ingId);
   if (!ing) return;
-  const s = parseFloat(servings), b = parseFloat(ing.buyAmt);
-  if (s > 0 && b > 0) {
-    const useAmt = parseFloat((b / s).toFixed(4));
-    // Match useUnit to buyUnit so units are consistent
-    ing.useAmt = String(useAmt);
+  const rounds  = parseFloat(document.getElementById('serve-'   + ingId)?.value) || 0;
+  const glasses = parseFloat(document.getElementById('glasses-' + ingId)?.value) || 1;
+  const b = parseFloat(ing.buyAmt);
+  if (rounds > 0 && b > 0) {
+    const totalServings = rounds * glasses;
+    const useAmt = parseFloat((b / totalServings).toFixed(6));
+    ing.useAmt  = String(useAmt);
     ing.useUnit = ing.buyUnit;
     const input = document.getElementById('use-amt-' + ingId);
     if (input) input.value = useAmt;
-    // Update useUnit select to match buyUnit
     const sel = document.querySelector(`#ing-${ingId} select:last-of-type`);
     if (sel) sel.value = ing.buyUnit;
-    // Update cost display
     const c = calcIngCost(ing);
     const el = document.getElementById('cost-' + ingId);
     if (el) el.innerHTML = c === 'err'
       ? `<span class="cost-err">⚠️ หน่วยไม่ตรงกัน</span>`
       : `<span class="cost-val">${fmt(c||0)} บาท</span>`;
+    updBatch(ingId);
   }
+}
+function calcServings(ing) {
+  const ba = parseFloat(ing.buyAmt), ua = parseFloat(ing.useAmt);
+  if (!ba || !ua || ba <= 0 || ua <= 0) return null;
+  const bu = UNITS[ing.buyUnit], uu = UNITS[ing.useUnit];
+  if (!bu || !uu || bu.g !== uu.g) return null;
+  return (ba * bu.f) / (ua * uu.f);
+}
+function buildBatchHTML(ing, ingId) {
+  const bp = parseFloat(ing.buyPrice);
+  if (!bp) return '';
+  const rounds  = ingId ? parseFloat(document.getElementById('serve-'   + ingId)?.value) || 0 : 0;
+  const glasses = ingId ? parseFloat(document.getElementById('glasses-' + ingId)?.value) || 1 : 1;
+  if (rounds > 0) {
+    const costPerRound = bp / rounds;
+    const costPerGlass = costPerRound / glasses;
+    return `<div style="display:flex;flex-direction:column;gap:4px;width:100%">
+      <div style="display:flex;justify-content:space-between">
+        <span class="cost-label">ต้นทุน 1 รอบ (${fmt(glasses)} แก้ว)</span>
+        <span style="font-weight:700;color:var(--text2)">${fmt(costPerRound)} บาท</span>
+      </div>
+      <div style="display:flex;justify-content:space-between">
+        <span class="cost-label">ต้นทุน 1 แก้ว/จาน</span>
+        <span style="font-weight:700;color:var(--orange)">${fmt(costPerGlass)} บาท</span>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+function updPerGlass(ingId) {
+  const el = document.getElementById('per-glass-' + ingId);
+  if (!el) return;
+  const glasses = parseFloat(document.getElementById('gpr-' + ingId)?.value);
+  if (!glasses || glasses <= 0) { el.textContent = '—'; return; }
+  const ing = ingredients.find(i => i.id === ingId);
+  if (!ing) return;
+  const c = calcIngCost(ing);
+  if (!c || c === 'err') { el.textContent = '—'; return; }
+  el.textContent = fmt(c / glasses) + ' บาท';
+}
+function updBatch(ingId) {
+  const el = document.getElementById('batch-' + ingId);
+  if (!el) return;
+  const ing = ingredients.find(i => i.id === ingId);
+  if (!ing) return;
+  el.innerHTML = buildBatchHTML(ing, ingId);
 }
 function clearServe(ingId) {
   const el = document.getElementById('serve-' + ingId);
@@ -933,6 +1000,8 @@ function updIng(id,field,value) {
   const c=calcIngCost(ing);
   const el=document.getElementById('cost-'+id); if(!el) return;
   el.innerHTML=c==='err'?`<span class="cost-err">⚠️ หน่วยไม่ตรงกัน</span>`:`<span class="cost-val">${fmt(c||0)} บาท</span>`;
+  updBatch(id);
+  updPerGlass(id);
 }
 function calcIngCost(ing) {
   const ba=parseFloat(ing.buyAmt),bp=parseFloat(ing.buyPrice),ua=parseFloat(ing.useAmt);
@@ -956,16 +1025,16 @@ function addPackaging(data) {
   div.innerHTML=`
     <div class="ing-header"><span class="ing-label">บรรจุภัณฑ์</span><button class="btn-delete" onclick="removePkg(${id})">✕ ลบ</button></div>
     <div class="field"><label class="field-label">ชื่อบรรจุภัณฑ์</label>
-      <input type="text" value="${esc(pkg.name)}" placeholder="เช่น กล่อง, ถุง, แก้ว" oninput="updPkg(${id},'name',this.value)"></div>
-    <div class="field" style="margin-bottom:6px"><label class="field-label">ราคาต่อชิ้น / ต่อหน่วย (บาท)</label>
-      <input type="number" id="pkg-cost-${id}" value="${pkg.cost}" placeholder="เช่น 2" min="0" step="any" oninput="updPkg(${id},'cost',this.value)"></div>
-    <div class="serve-helper">
-      <span class="serve-helper-label">หรือซื้อมา</span>
+      <input type="text" value="${esc(pkg.name)}" list="pkg-suggestions" placeholder="เช่น กล่อง, ถุง, แก้ว" oninput="updPkg(${id},'name',this.value)"></div>
+    <div class="serve-helper" style="margin-bottom:8px">
+      <span class="serve-helper-label">ซื้อมา</span>
       <input type="number" id="pkg-price-${id}" placeholder="ราคา" min="0" step="any" style="width:72px" oninput="autoFillPkg(${id})">
       <span class="serve-helper-label">บาท ได้</span>
       <input type="number" id="pkg-qty-${id}" placeholder="จำนวน" min="1" step="any" style="width:72px" oninput="autoFillPkg(${id})">
       <span class="serve-helper-label">ชิ้น</span>
-    </div>`;
+    </div>
+    <div class="field" style="margin-bottom:0"><label class="field-label">ราคาต่อชิ้น / ต่อหน่วย (บาท)</label>
+      <input type="number" id="pkg-cost-${id}" value="${pkg.cost}" placeholder="เช่น 2" min="0" step="any" oninput="updPkg(${id},'cost',this.value)"></div>`;
   document.getElementById('pkg-list').appendChild(div);
 }
 function autoFillPkg(id) {
@@ -1517,5 +1586,30 @@ function showToast(msg){
   toastTimer=setTimeout(()=>{t.className='toast';},2300);
 }
 </script>
+
+<datalist id="pkg-suggestions">
+  <option value="ถุงดูด">
+  <option value="แก้วพลาสติก">
+  <option value="ฝาแก้ว">
+  <option value="หลอด">
+  <option value="ถุงพลาสติก">
+  <option value="กล่องกระดาษ">
+  <option value="ช้อน">
+  <option value="ไม้จิ้มฟัน">
+</datalist>
+
+<datalist id="ing-suggestions">
+  <option value="ข้าวโพด">
+  <option value="ข้าวโพดแกะ">
+  <option value="แครอท">
+  <option value="แอปเปิล">
+  <option value="น้ำผึ้งมะนาว">
+  <option value="เลม่อน">
+  <option value="น้ำเต้าหู้">
+  <option value="ถั่วเหลือง">
+  <option value="ถั่วลิสง">
+  <option value="ผงชานม">
+  <option value="ฟักทอง">
+</datalist>
 </body>
 </html>
