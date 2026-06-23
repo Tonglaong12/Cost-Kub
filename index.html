@@ -10,6 +10,8 @@
   <meta name="theme-color" content="#3A2C1E">
   <link rel="apple-touch-icon" href="icon.png.png">
   <link rel="manifest" href="manifest.json">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -587,9 +589,20 @@
 
   <div style="padding: 18px;">
 
-    <!-- BACKUP SECTION -->
+    <!-- SYNC SECTION -->
     <div class="section-title" style="margin-bottom:4px">⚙️ ตั้งค่า</div>
     <div class="section-sub" style="margin-bottom:20px">จัดการข้อมูลแอพ KitCost</div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">☁️ ซิงค์ข้อมูลขึ้น Cloud</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">
+        อัปโหลดสูตรทั้งหมดขึ้น Firebase เพื่อให้เข้าถึงได้จากทุกเครื่อง
+      </div>
+      <div id="sync-status" style="font-size:13px;color:var(--text3);margin-bottom:12px;min-height:18px"></div>
+      <button class="btn btn-primary" onclick="syncToCloud(this)">☁️ Sync ขึ้น Cloud</button>
+    </div>
+
+    <!-- BACKUP SECTION -->
 
     <div class="card">
       <div style="font-size:16px;font-weight:700;margin-bottom:4px">📦 สำรองข้อมูล (Export CSV)</div>
@@ -822,10 +835,70 @@ function navigate(page) {
 
 
 /* ════════════════════════════════════════
+   FIREBASE
+════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBtoIHeSnguOB4eLYAXVLNSOVXsOUHTYcI",
+  authDomain: "costkub-fd63e.firebaseapp.com",
+  projectId: "costkub-fd63e",
+  storageBucket: "costkub-fd63e.firebasestorage.app",
+  messagingSenderId: "352691946731",
+  appId: "1:352691946731:web:1095665344354196692aae",
+  measurementId: "G-V9RQX0CL57"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function syncToCloud(btn) {
+  if (!savedRecipes.length) { showToast('ไม่มีสูตรที่จะ sync'); return; }
+  btn.disabled = true; btn.textContent = '⏳ กำลัง Sync...';
+  const status = document.getElementById('sync-status');
+  if (status) status.textContent = 'กำลังอัปโหลด ' + savedRecipes.length + ' สูตร...';
+  const batch = db.batch();
+  savedRecipes.forEach(r => {
+    const ref = db.collection('recipes').doc(String(r.id));
+    batch.set(ref, r);
+  });
+  batch.commit()
+    .then(() => {
+      btn.textContent = '✅ Sync สำเร็จ!';
+      if (status) status.textContent = 'อัปโหลดสำเร็จ ' + savedRecipes.length + ' สูตร เมื่อ ' + new Date().toLocaleTimeString('th-TH');
+      setTimeout(() => { btn.disabled = false; btn.textContent = '☁️ Sync ขึ้น Cloud'; }, 3000);
+    })
+    .catch(e => {
+      btn.disabled = false; btn.textContent = '☁️ Sync ขึ้น Cloud';
+      if (status) status.textContent = '❌ เกิดข้อผิดพลาด: ' + e.message;
+      showToast('Sync ไม่สำเร็จ');
+    });
+}
+function fbSave(recipe) {
+  db.collection('recipes').doc(String(recipe.id)).set(recipe)
+    .catch(e => console.warn('Firebase save error:', e));
+}
+function fbDelete(id) {
+  db.collection('recipes').doc(String(id)).delete()
+    .catch(e => console.warn('Firebase delete error:', e));
+}
+function fbLoadAll() {
+  db.collection('recipes').orderBy('id','desc').get()
+    .then(snap => {
+      if (snap.empty) return;
+      const fromFB = snap.docs.map(d => d.data()).filter(r => r && r.id && Array.isArray(r.ingredients) && Array.isArray(r.packaging));
+      if (fromFB.length > 0) {
+        savedRecipes = fromFB;
+        try { localStorage.setItem('kitcost_v1', JSON.stringify(savedRecipes)); } catch(e) {}
+        if (document.getElementById('saved-list')) renderSavedList();
+      }
+    })
+    .catch(e => console.warn('Firebase load error:', e));
+}
+
+/* ════════════════════════════════════════
    INIT
 ════════════════════════════════════════ */
 (function init() {
   try { const r=localStorage.getItem('kitcost_v1'); if(r) savedRecipes=JSON.parse(r); } catch(e){}
+  fbLoadAll();
   try { const r=localStorage.getItem('kitcost_daily'); if(r) dailyRecords=JSON.parse(r); } catch(e){}
 
   const today = new Date();
@@ -1144,6 +1217,7 @@ function saveRecipe(btn) {
     miscType:t.miscType,miscVal:t.miscVal,total:t.total};
   savedRecipes.unshift(recipe);
   try{localStorage.setItem('kitcost_v1',JSON.stringify(savedRecipes));}catch(e){}
+  fbSave(recipe);
   btn.textContent='✅ บันทึกแล้ว!'; btn.disabled=true;
   showToast('บันทึกสูตรเรียบร้อย!');
 }
@@ -1258,6 +1332,7 @@ function deleteRecipe(id) {
   const r=savedRecipes.find(x=>x.id===id); if(!r||!confirm(`ลบสูตร "${r.name}"?`)) return;
   savedRecipes=savedRecipes.filter(x=>x.id!==id);
   try{localStorage.setItem('kitcost_v1',JSON.stringify(savedRecipes));}catch(e){}
+  fbDelete(id);
   renderSavedList();
 }
 
