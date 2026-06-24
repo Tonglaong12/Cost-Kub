@@ -133,6 +133,20 @@
       background: #fff; color: var(--text); text-align: center;
     }
     .serve-helper-label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+    .ac-wrap { position: relative; }
+    .ac-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 999;
+      background: var(--card); border: 1.5px solid var(--orange-border);
+      border-radius: var(--r-sm); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      max-height: 220px; overflow-y: auto; display: none; margin-top: 2px;
+    }
+    .ac-dropdown.open { display: block; }
+    .ac-item {
+      padding: 11px 14px; font-size: 14px; cursor: pointer;
+      border-bottom: 1px solid var(--border); color: var(--text);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.active { background: var(--orange-bg); color: var(--orange); font-weight: 600; }
 
     /* ── CARD ── */
     .card { background: var(--card); border-radius: var(--r); padding: 18px; border: 1px solid var(--border); margin-bottom: 14px; }
@@ -798,6 +812,33 @@ const UNITS = {
   'ชิ้น':{g:'count',f:1}, 'ลูก':{g:'count',f:1}, 'ฟอง':{g:'count',f:1},
   'ถุง':{g:'count',f:1}, 'กล่อง':{g:'count',f:1}, 'แพ็ค':{g:'count',f:1}, 'อัน':{g:'count',f:1},
 };
+const ING_LIST = ['ข้าวโพด','ข้าวโพดแกะ','แครอท','แอปเปิล','น้ำผึ้งมะนาว','เลม่อน','น้ำเต้าหู้','ถั่วเหลือง','ถั่วลิสง','ผงชานม','ฟักทอง'];
+const PKG_LIST = ['ถุงดูด','แก้วพลาสติก','ฝาแก้ว','หลอด','ถุงพลาสติก','กล่องกระดาษ','ช้อน','ไม้จิ้มฟัน'];
+function acOpen(inputId, dropId, list) {
+  acFilter(inputId, dropId, list);
+  document.getElementById(dropId).classList.add('open');
+}
+function acFilter(inputId, dropId, list) {
+  const input = document.getElementById(inputId);
+  const drop = document.getElementById(dropId);
+  if (!input || !drop) return;
+  const val = input.value.toLowerCase();
+  const filtered = val ? list.filter(x => x.toLowerCase().includes(val)) : list;
+  drop.innerHTML = filtered.map(x =>
+    `<div class="ac-item" onmousedown="acSelect('${inputId}','${dropId}','${x}')">${x}</div>`
+  ).join('');
+  drop.classList.toggle('open', filtered.length > 0);
+}
+function acSelect(inputId, dropId, value) {
+  const input = document.getElementById(inputId);
+  if (input) { input.value = value; input.dispatchEvent(new Event('input')); }
+  document.getElementById(dropId).classList.remove('open');
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.ac-dropdown.open').forEach(d => {
+    if (!d.previousElementSibling?.contains(e.target)) d.classList.remove('open');
+  });
+});
 const BUY_UNITS = ['กิโลกรัม','กรัม','ลิตร','มิลลิลิตร','ชิ้น','ลูก','ฟอง','ถุง','กล่อง','แพ็ค','อัน'];
 const USE_UNITS = ['กรัม','กิโลกรัม','มิลลิลิตร','ลิตร','ช้อนโต๊ะ','ช้อนชา','ชิ้น','ลูก','ฟอง','ถุง','กล่อง','แพ็ค','อัน'];
 function unitOpts(list, sel) { return list.map(u=>`<option${u===sel?' selected':''}>${u}</option>`).join(''); }
@@ -959,7 +1000,12 @@ function buildIngHTML(ing) {
       <button class="toggle-tab inactive" onclick="openRecipePicker(${ing.id})">จากสูตรที่บันทึกไว้</button>
     </div>
     <div class="field"><label class="field-label">ชื่อวัตถุดิบ</label>
-      <input type="text" value="${esc(ing.name)}" list="ing-suggestions" placeholder="เช่น น้ำตาลทราย" oninput="updIng(${ing.id},'name',this.value)"></div>
+      <div class="ac-wrap">
+        <input type="text" id="ing-name-${ing.id}" value="${esc(ing.name)}" placeholder="เช่น น้ำตาลทราย" autocomplete="off"
+          onfocus="acOpen('ing-name-${ing.id}','ing-ac-${ing.id}',ING_LIST)"
+          oninput="updIng(${ing.id},'name',this.value);acFilter('ing-name-${ing.id}','ing-ac-${ing.id}',ING_LIST)">
+        <div class="ac-dropdown" id="ing-ac-${ing.id}"></div>
+      </div></div>
     <div class="field-row">
       <div class="field"><label class="field-label">ซื้อมาเท่าไหร่</label>
         <input type="number" value="${ing.buyAmt}" placeholder="เช่น 1" min="0" step="any" oninput="updIng(${ing.id},'buyAmt',this.value)"></div>
@@ -1045,9 +1091,14 @@ function updPerGlass(ingId) {
   const el = document.getElementById('per-glass-' + ingId);
   if (!el) return;
   const glasses = parseFloat(document.getElementById('gpr-' + ingId)?.value);
-  if (!glasses || glasses <= 0) { el.textContent = '—'; return; }
   const ing = ingredients.find(i => i.id === ingId);
   if (!ing) return;
+  if (!glasses || glasses <= 0) {
+    el.textContent = '—';
+    ing.glassesPerRound = 1;
+    return;
+  }
+  ing.glassesPerRound = glasses;
   const c = calcIngCost(ing);
   if (!c || c === 'err') { el.textContent = '—'; return; }
   el.textContent = fmt(c / glasses) + ' บาท';
@@ -1098,7 +1149,12 @@ function addPackaging(data) {
   div.innerHTML=`
     <div class="ing-header"><span class="ing-label">บรรจุภัณฑ์</span><button class="btn-delete" onclick="removePkg(${id})">✕ ลบ</button></div>
     <div class="field"><label class="field-label">ชื่อบรรจุภัณฑ์</label>
-      <input type="text" value="${esc(pkg.name)}" list="pkg-suggestions" placeholder="เช่น กล่อง, ถุง, แก้ว" oninput="updPkg(${id},'name',this.value)"></div>
+      <div class="ac-wrap">
+        <input type="text" id="pkg-name-${id}" value="${esc(pkg.name)}" placeholder="เช่น กล่อง, ถุง, แก้ว" autocomplete="off"
+          onfocus="acOpen('pkg-name-${id}','pkg-ac-${id}',PKG_LIST)"
+          oninput="updPkg(${id},'name',this.value);acFilter('pkg-name-${id}','pkg-ac-${id}',PKG_LIST)">
+        <div class="ac-dropdown" id="pkg-ac-${id}"></div>
+      </div></div>
     <div class="serve-helper" style="margin-bottom:8px">
       <span class="serve-helper-label">ซื้อมา</span>
       <input type="number" id="pkg-price-${id}" placeholder="ราคา" min="0" step="any" style="width:72px" oninput="autoFillPkg(${id})">
@@ -1147,7 +1203,9 @@ function setMiscType(type) {
 function getTotals() {
   let ingTotal=0; const ingBreak=[];
   ingredients.forEach(ing=>{
-    const c=calcIngCost(ing); const cost=(c&&c!=='err')?c:0;
+    const c=calcIngCost(ing);
+    const gpr = (ing.glassesPerRound && ing.glassesPerRound > 1) ? ing.glassesPerRound : 1;
+    const cost=(c&&c!=='err')?c/gpr:0;
     ingTotal+=cost; ingBreak.push({name:ing.name||'(ไม่มีชื่อ)',cost,err:c==='err'});
   });
   let pkgTotal=0; const pkgBreak=[];
@@ -1245,14 +1303,24 @@ function renderSavedList() {
     if (!seenDates[d]) { seenDates[d] = []; groups.push({ date: d, recipes: seenDates[d] }); }
     seenDates[d].push(r);
   });
+  // Sort groups newest first
+  const thMonths = {'ม.ค.':1,'ก.พ.':2,'มี.ค.':3,'เม.ย.':4,'พ.ค.':5,'มิ.ย.':6,'ก.ค.':7,'ส.ค.':8,'ก.ย.':9,'ต.ค.':10,'พ.ย.':11,'ธ.ค.':12};
+  function parseThaDate(d) {
+    const m = d.match(/(\d+)\s+(\S+)\s+(\d+)/);
+    if (!m) return 0;
+    return parseInt(m[3])*10000 + (thMonths[m[2]]||0)*100 + parseInt(m[1]);
+  }
+  groups.sort((a,b) => parseThaDate(b.date) - parseThaDate(a.date));
 
   function buildCard(r) {
     let detailRows = '';
     r.ingredients.forEach(ing => {
       const c = calcIngCost(ing);
-      const costStr = (c && c !== 'err') ? `${fmt(c)} บาท` : (c === 'err' ? '⚠️ หน่วยไม่ตรง' : '—');
+      const gpr = (ing.glassesPerRound && ing.glassesPerRound > 1) ? ing.glassesPerRound : 1;
+      const costPerGlass = (c && c !== 'err') ? c / gpr : null;
+      const costStr = costPerGlass !== null ? `${fmt(costPerGlass)} บาท` : (c === 'err' ? '⚠️ หน่วยไม่ตรง' : '—');
       const subText = (ing.buyAmt && ing.buyUnit && ing.buyPrice)
-        ? `ซื้อ ${ing.buyAmt} ${ing.buyUnit} = ${ing.buyPrice} บาท &bull; ใช้ ${ing.useAmt} ${ing.useUnit}`
+        ? `ซื้อ ${ing.buyAmt} ${ing.buyUnit} = ${ing.buyPrice} บาท &bull; ใช้ ${ing.useAmt} ${ing.useUnit}${gpr > 1 ? ` &bull; รอบละ ${gpr} แก้ว` : ''}`
         : '';
       detailRows += `<div class="detail-row">
         <div style="flex:1;min-width:0">
