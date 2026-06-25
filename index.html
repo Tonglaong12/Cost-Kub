@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KitCost - คิดต้นทุนร้านเล็ก</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14,6 +14,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { overflow-x: hidden; width: 100%; }
 
     :root {
       --bg: #F4EFE3;
@@ -1030,7 +1032,7 @@ function buildIngHTML(ing) {
     <div class="cost-row"><span class="cost-label">ต้นทุนส่วนนี้ (1 รอบ)</span><span id="cost-${ing.id}">${costHTML}</span></div>
     <div class="serve-helper" style="margin-top:6px">
       <span class="serve-helper-label">แต่ละรอบทำ</span>
-      <input type="number" id="gpr-${ing.id}" placeholder="เช่น 3" min="1" step="any" oninput="updPerGlass(${ing.id})">
+      <input type="number" id="gpr-${ing.id}" value="${ing.glassesPerRound||''}" placeholder="เช่น 3" min="1" step="any" oninput="updPerGlass(${ing.id})">
       <span class="serve-helper-label">แก้ว → ต้นทุน/แก้ว</span>
       <span id="per-glass-${ing.id}" style="font-weight:700;color:var(--orange);white-space:nowrap">—</span>
     </div>
@@ -1390,10 +1392,12 @@ function loadRecipe(id) {
   document.getElementById('ing-list').innerHTML=''; document.getElementById('pkg-list').innerHTML='';
   document.getElementById('menu-name').value=r.name==='สูตรไม่มีชื่อ'?'':r.name;
   r.ingredients.forEach(ing=>addIngredient(ing));
+  // Restore per-glass display for each ingredient
+  ingredients.forEach(ing=>{ if(ing.glassesPerRound && ing.glassesPerRound>1) updPerGlass(ing.id); });
   r.packaging.forEach(pkg=>addPackaging(pkg));
-  setMiscType(r.miscType||'percent');
-  if(r.miscType==='percent') document.getElementById('misc-pct').value=r.miscVal||10;
-  else document.getElementById('misc-fix').value=r.miscVal||0;
+  // Reset misc fields (ไม่โหลดค่าจิปาถะ)
+  setMiscType('percent');
+  document.getElementById('misc-pct').value='';
   showToast(`โหลดสูตร "${r.name}" แล้ว`); navigate('calculate');
 }
 function renameRecipe(id, e) {
