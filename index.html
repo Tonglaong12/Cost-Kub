@@ -501,14 +501,16 @@
       </div>
     </div>
     <label class="field-label">ชื่อเมนูหรือสินค้า</label>
-    <input type="text" id="menu-name" list="menu-suggestions" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่">
-    <datalist id="menu-suggestions">
-      <option value="น้ำข้าวโพด">
-      <option value="น้ำแครอท">
-      <option value="น้ำเต้าหู้">
-      <option value="น้ำเต้าหู้ชานม">
-      <option value="น้ำฟักทอง">
-    </datalist>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div class="ac-wrap" style="flex:1">
+        <input type="text" id="menu-name" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่" autocomplete="off"
+          onfocus="acOpen('menu-name','menu-ac',MENU_LIST)"
+          oninput="acFilter('menu-name','menu-ac',MENU_LIST)">
+        <div class="ac-dropdown" id="menu-ac"></div>
+      </div>
+      <button onclick="addToMenuList()" title="เพิ่มชื่อเมนูใหม่"
+        style="flex-shrink:0;height:44px;padding:0 14px;background:var(--orange);color:#fff;border:none;border-radius:var(--r-sm);font-size:20px;font-weight:700;cursor:pointer;line-height:1">+</button>
+    </div>
   </div>
 
   <div style="padding: 0 18px 20px;">
@@ -814,8 +816,26 @@ const UNITS = {
   'ชิ้น':{g:'count',f:1}, 'ลูก':{g:'count',f:1}, 'ฟอง':{g:'count',f:1},
   'ถุง':{g:'count',f:1}, 'กล่อง':{g:'count',f:1}, 'แพ็ค':{g:'count',f:1}, 'อัน':{g:'count',f:1},
 };
+const _DEFAULT_MENU = ['น้ำข้าวโพด','น้ำแครอท','น้ำเต้าหู้','น้ำเต้าหู้ชานม','น้ำฟักทอง'];
+let MENU_LIST = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('kitcost_menus') || '[]');
+    const merged = [..._DEFAULT_MENU];
+    saved.forEach(x => { if (!merged.includes(x)) merged.push(x); });
+    return merged;
+  } catch(e) { return [..._DEFAULT_MENU]; }
+})();
 const ING_LIST = ['ข้าวโพด','ข้าวโพดแกะ','แครอท','แอปเปิล','น้ำผึ้งมะนาว','เลม่อน','น้ำเต้าหู้','ถั่วเหลือง','ถั่วลิสง','ผงชานม','ฟักทอง'];
 const PKG_LIST = ['ถุงดูด','แก้วพลาสติก','ฝาแก้ว','หลอด','ถุงพลาสติก','กล่องกระดาษ','ช้อน','ไม้จิ้มฟัน'];
+function addToMenuList() {
+  const val = document.getElementById('menu-name')?.value.trim();
+  if (!val) { showToast('กรอกชื่อเมนูก่อนกด +'); return; }
+  if (MENU_LIST.includes(val)) { showToast(`"${val}" มีอยู่แล้ว`); return; }
+  MENU_LIST.push(val);
+  const customs = MENU_LIST.filter(x => !_DEFAULT_MENU.includes(x));
+  try { localStorage.setItem('kitcost_menus', JSON.stringify(customs)); } catch(e) {}
+  showToast(`เพิ่ม "${val}" แล้ว ✅`);
+}
 function acOpen(inputId, dropId, list) {
   acFilter(inputId, dropId, list);
   document.getElementById(dropId).classList.add('open');
@@ -835,6 +855,30 @@ function acSelect(inputId, dropId, value) {
   const input = document.getElementById(inputId);
   if (input) { input.value = value; input.dispatchEvent(new Event('input')); }
   document.getElementById(dropId).classList.remove('open');
+}
+function acFilterMenu() {
+  acFilter('menu-name', 'menu-ac', MENU_LIST);
+  const input = document.getElementById('menu-name');
+  const drop = document.getElementById('menu-ac');
+  const val = input.value.trim();
+  if (val && !MENU_LIST.some(x => x === val)) {
+    const addDiv = document.createElement('div');
+    addDiv.className = 'ac-item';
+    addDiv.style.cssText = 'color:var(--orange);font-weight:700;border-top:1.5px dashed var(--orange-border);';
+    addDiv.textContent = `➕ เพิ่ม "${val}"`;
+    addDiv.onmousedown = () => acAddMenu(val);
+    drop.appendChild(addDiv);
+    drop.classList.add('open');
+  }
+}
+function acAddMenu(name) {
+  if (!MENU_LIST.includes(name)) {
+    MENU_LIST.push(name);
+    try { localStorage.setItem('kitcost_menus', JSON.stringify(MENU_LIST)); } catch(e) {}
+    showToast(`เพิ่ม "${name}" แล้ว ✅`);
+  }
+  document.getElementById('menu-name').value = name;
+  document.getElementById('menu-ac').classList.remove('open');
 }
 document.addEventListener('click', e => {
   document.querySelectorAll('.ac-dropdown.open').forEach(d => {
