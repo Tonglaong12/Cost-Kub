@@ -505,7 +505,9 @@
       <div class="ac-wrap" style="flex:1">
         <input type="text" id="menu-name" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่" autocomplete="off"
           onfocus="acOpen('menu-name','menu-ac',MENU_LIST)"
-          oninput="acFilter('menu-name','menu-ac',MENU_LIST)">
+          onclick="acOpen('menu-name','menu-ac',MENU_LIST)"
+          ontouchend="acOpen('menu-name','menu-ac',MENU_LIST)"
+          oninput="acFilterMenu()">
         <div class="ac-dropdown" id="menu-ac"></div>
       </div>
       <button onclick="addToMenuList()" title="เพิ่มชื่อเมนูใหม่"
@@ -870,6 +872,8 @@ function acFilterMenu() {
     drop.appendChild(addDiv);
     drop.classList.add('open');
   }
+  // Show all when empty
+  if (!val) drop.classList.add('open');
 }
 function acAddMenu(name) {
   if (!MENU_LIST.includes(name)) {
@@ -997,12 +1001,8 @@ function fbLoadAll() {
   document.getElementById('calc-date-input').value = iso;
   setCalcDate(iso);
 
-  // Pre-load น้ำข้าวโพด demo
-  document.getElementById('menu-name').value = 'น้ำข้าวโพด (ข้าวโพดแกะ)';
-  addIngredient({name:'ข้าวโพดแกะ', buyAmt:'1', buyUnit:'กิโลกรัม', buyPrice:'69', useAmt:'66.67', useUnit:'กรัม'});
-  addPackaging({name:'ถุงดูด', cost:'0.83'});
-  setMiscType('percent');
-  document.getElementById('misc-pct').value='0';
+  // Start blank
+  addIngredient();
 
   navigate('calculate');
 })();
@@ -1049,6 +1049,7 @@ function buildIngHTML(ing) {
       <div class="ac-wrap">
         <input type="text" id="ing-name-${ing.id}" value="${esc(ing.name)}" placeholder="เช่น น้ำตาลทราย" autocomplete="off"
           onfocus="acOpen('ing-name-${ing.id}','ing-ac-${ing.id}',ING_LIST)"
+          onclick="acOpen('ing-name-${ing.id}','ing-ac-${ing.id}',ING_LIST)"
           oninput="updIng(${ing.id},'name',this.value);acFilter('ing-name-${ing.id}','ing-ac-${ing.id}',ING_LIST)">
         <div class="ac-dropdown" id="ing-ac-${ing.id}"></div>
       </div></div>
