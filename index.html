@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>KitCost - คิดต้นทุนร้านเล็ก</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,6 +16,8 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body { overflow-x: hidden; width: 100%; }
+    /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+    input, select, textarea { font-size: 16px !important; }
 
     :root {
       --bg: #F4EFE3;
@@ -506,7 +508,6 @@
         <input type="text" id="menu-name" placeholder="เช่น ชาเย็น, ข้าวไข่เจียว, บราวนี่" autocomplete="off"
           onfocus="acOpen('menu-name','menu-ac',MENU_LIST)"
           onclick="acOpen('menu-name','menu-ac',MENU_LIST)"
-          ontouchend="acOpen('menu-name','menu-ac',MENU_LIST)"
           oninput="acFilterMenu()">
         <div class="ac-dropdown" id="menu-ac"></div>
       </div>
